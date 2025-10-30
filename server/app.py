@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from models import db
 from auth import auth_bp
+from routes import api_bp
 import os
 
 
@@ -36,7 +37,7 @@ def create_app():
     
     # Register blueprints
     app.register_blueprint(auth_bp)
-    # app.register_blueprint(api_bp)  # Will be added in PR-4
+    app.register_blueprint(api_bp)  # PR-4: List management routes
     
     # Create database tables
     with app.app_context():
