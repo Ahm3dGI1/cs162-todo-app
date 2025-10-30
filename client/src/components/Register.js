@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 
 function Register({ onRegister }) {
   const [username, setUsername] = useState('');
@@ -34,7 +35,7 @@ function Register({ onRegister }) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(API_ENDPOINTS.REGISTER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
