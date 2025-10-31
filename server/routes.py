@@ -193,13 +193,13 @@ def delete_list(list_id):
 @login_required
 def get_todos(list_id):
     """
-    Get all todos for a specific list (top-level only for PR-6).
+    Get all todos for a specific list (PR-8: Returns hierarchical structure).
 
     Args:
         list_id: ID of the list to get todos from
 
     Returns:
-        200: List of todos
+        200: Hierarchical list of todos (only top-level, with nested children)
         401: Not authenticated
         403: Not authorized to access this list
         404: List not found
@@ -216,14 +216,15 @@ def get_todos(list_id):
     if todo_list.user_id != user_id:
         return jsonify({'error': 'Not authorized to access this list'}), 403
 
-    # Get all top-level todos (parent_id is null)
+    # Get all top-level todos (parent_id is null) with their children
     todos = TodoItem.query.filter_by(
         list_id=list_id,
         parent_id=None
     ).order_by(TodoItem.created_at).all()
 
+    # PR-8: Return hierarchical structure with children
     return jsonify({
-        'todos': [todo.to_dict() for todo in todos]
+        'todos': [todo.to_dict(include_children=True) for todo in todos]
     }), 200
 
 
@@ -231,21 +232,22 @@ def get_todos(list_id):
 @login_required
 def create_todo():
     """
-    Create a new top-level todo item (PR-6 - no parent support yet).
+    Create a new todo item (PR-8: Now supports parent_id for hierarchical todos).
 
     Expected JSON body:
         {
             "list_id": integer,
             "title": "string",
-            "description": "string" (optional)
+            "description": "string" (optional),
+            "parent_id": integer (optional, for subtasks)
         }
 
     Returns:
         201: Todo created successfully
-        400: Validation error
+        400: Validation error (including depth limit)
         401: Not authenticated
         403: Not authorized to add to this list
-        404: List not found
+        404: List or parent todo not found
     """
     user_id = session.get('user_id')
     data = request.get_json()
@@ -257,6 +259,7 @@ def create_todo():
     list_id = data['list_id']
     title = data['title'].strip()
     description = data.get('description', '').strip()
+    parent_id = data.get('parent_id')  # PR-8: Now accepting parent_id
 
     # Validate title length
     if len(title) < 1:
@@ -275,15 +278,36 @@ def create_todo():
     if todo_list.user_id != user_id:
         return jsonify({'error': 'Not authorized to add to this list'}), 403
 
-    # Create new todo (top-level only - parent_id=None, depth=0)
+    # PR-8: Calculate depth based on parent
+    depth = 0
+    if parent_id:
+        parent_todo = TodoItem.query.get(parent_id)
+
+        if not parent_todo:
+            return jsonify({'error': 'Parent todo not found'}), 404
+
+        # Verify parent belongs to user and same list
+        if parent_todo.user_id != user_id:
+            return jsonify({'error': 'Not authorized to add subtask to this todo'}), 403
+
+        if parent_todo.list_id != list_id:
+            return jsonify({'error': 'Parent todo must be in the same list'}), 400
+
+        # Calculate depth (max depth is 2, meaning levels 0, 1, 2)
+        depth = parent_todo.depth + 1
+
+        if depth > 2:
+            return jsonify({'error': 'Maximum nesting depth reached (3 levels max)'}), 400
+
+    # Create new todo
     try:
         new_todo = TodoItem(
             title=title,
             description=description,
             list_id=list_id,
             user_id=user_id,
-            parent_id=None,  # PR-6: Top-level only
-            depth=0,
+            parent_id=parent_id,
+            depth=depth,
             completed=False,
             collapsed=False
         )
@@ -293,7 +317,7 @@ def create_todo():
 
         return jsonify({
             'message': 'Todo created successfully',
-            'todo': new_todo.to_dict()
+            'todo': new_todo.to_dict(include_children=True)  # Include children for hierarchical display
         }), 201
 
     except Exception as e:

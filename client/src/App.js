@@ -16,7 +16,7 @@ function App() {
   const [selectedList, setSelectedList] = useState(null);
   const [listsLoading, setListsLoading] = useState(false);
 
-  // Todo state (PR-7)
+  // Todo state 
   const [todos, setTodos] = useState([]);
   const [todosLoading, setTodosLoading] = useState(false);
 
@@ -168,7 +168,7 @@ function App() {
   };
 
   /**
-   * Fetch todos for the selected list (PR-7)
+   * Fetch todos for the selected list 
    */
   const fetchTodos = async (listId) => {
     setTodosLoading(true);
@@ -193,7 +193,7 @@ function App() {
   };
 
   /**
-   * Create a new todo (PR-7)
+   * Create a new todo
    */
   const handleCreateTodo = async (todoData) => {
     const response = await fetch(API_ENDPOINTS.TODOS, {
@@ -206,9 +206,10 @@ function App() {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      const newTodo = data.todo;
-      setTodos([...todos, newTodo]);
+      // Refetch todos to get updated hierarchical structure
+      if (selectedList) {
+        await fetchTodos(selectedList.id);
+      }
     } else {
       const error = await response.json();
       throw new Error(error.error || 'Failed to create todo');
@@ -216,7 +217,7 @@ function App() {
   };
 
   /**
-   * Update a todo (PR-7)
+   * Update a todo 
    */
   const handleUpdateTodo = async (todoId, updates) => {
     const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
@@ -229,9 +230,10 @@ function App() {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      const updatedTodo = data.todo;
-      setTodos(todos.map(todo => todo.id === todoId ? updatedTodo : todo));
+      // Refetch to maintain hierarchical structure
+      if (selectedList) {
+        await fetchTodos(selectedList.id);
+      }
     } else {
       const error = await response.json();
       throw new Error(error.error || 'Failed to update todo');
@@ -239,7 +241,7 @@ function App() {
   };
 
   /**
-   * Delete a todo (PR-7)
+   * Delete a todo
    */
   const handleDeleteTodo = async (todoId) => {
     const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
@@ -248,7 +250,10 @@ function App() {
     });
 
     if (response.ok) {
-      setTodos(todos.filter(todo => todo.id !== todoId));
+      // Refetch to maintain hierarchical structure
+      if (selectedList) {
+        await fetchTodos(selectedList.id);
+      }
     } else {
       const error = await response.json();
       throw new Error(error.error || 'Failed to delete todo');
@@ -265,7 +270,7 @@ function App() {
   }, [user]);
 
   /**
-   * Load todos when selected list changes (PR-7)
+   * Load todos when selected list changes 
    */
   useEffect(() => {
     if (selectedList) {

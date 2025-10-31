@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 
-function TodoItem({ todo, onUpdate, onDelete }) {
+function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description || '');
+
+  // PR-8: Add subtask form state
+  const [showSubtaskForm, setShowSubtaskForm] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [subtaskDescription, setSubtaskDescription] = useState('');
+  const [subtaskLoading, setSubtaskLoading] = useState(false);
 
   /**
    * Handle save edit
@@ -59,9 +65,52 @@ function TodoItem({ todo, onUpdate, onDelete }) {
     }
   };
 
+  /**
+   * PR-8: Handle create subtask
+   */
+  const handleCreateSubtask = async (e) => {
+    e.preventDefault();
+
+    if (!subtaskTitle.trim()) {
+      alert('Subtask title cannot be empty');
+      return;
+    }
+
+    setSubtaskLoading(true);
+    try {
+      await onCreateSubtask({
+        list_id: listId,
+        parent_id: todo.id,
+        title: subtaskTitle.trim(),
+        description: subtaskDescription.trim()
+      });
+
+      // Reset form
+      setSubtaskTitle('');
+      setSubtaskDescription('');
+      setShowSubtaskForm(false);
+    } catch (err) {
+      alert('Failed to create subtask: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSubtaskLoading(false);
+    }
+  };
+
+  /**
+   * PR-8: Cancel subtask form
+   */
+  const handleCancelSubtask = () => {
+    setShowSubtaskForm(false);
+    setSubtaskTitle('');
+    setSubtaskDescription('');
+  };
+
+  // PR-8: Check if max depth reached
+  const canAddSubtask = todo.depth < 2;
+
   if (isEditing) {
     return (
-      <div className="todo-item">
+      <div className={`todo-item depth-${todo.depth}`}>
         <div className="todo-content">
           <div className="todo-edit-form">
             <input
@@ -104,9 +153,9 @@ function TodoItem({ todo, onUpdate, onDelete }) {
   }
 
   return (
-    <div className="todo-item">
+    <div className={`todo-item depth-${todo.depth}`}>
       <div className={`todo-content ${todo.completed ? 'completed' : ''}`}>
-        {/* Checkbox (not functional in PR-7) */}
+        {/* Checkbox (not functional yet) */}
         <input
           type="checkbox"
           className="todo-checkbox"
@@ -125,6 +174,24 @@ function TodoItem({ todo, onUpdate, onDelete }) {
 
         {/* Action buttons */}
         <div className="todo-actions">
+          {/* PR-8: Add Subtask button */}
+          {canAddSubtask ? (
+            <button
+              className="action-button"
+              onClick={() => setShowSubtaskForm(!showSubtaskForm)}
+              title="Add subtask"
+            >
+              ➕
+            </button>
+          ) : (
+            <button
+              className="action-button"
+              disabled
+              title="Maximum depth reached (3 levels)"
+            >
+              🚫
+            </button>
+          )}
           <button
             className="action-button"
             onClick={() => setIsEditing(true)}
@@ -141,6 +208,65 @@ function TodoItem({ todo, onUpdate, onDelete }) {
           </button>
         </div>
       </div>
+
+      {/* PR-8: Subtask creation form */}
+      {showSubtaskForm && (
+        <div className="add-child-form">
+          <form onSubmit={handleCreateSubtask}>
+            <input
+              type="text"
+              className="child-input"
+              placeholder="Subtask title"
+              value={subtaskTitle}
+              onChange={(e) => setSubtaskTitle(e.target.value)}
+              autoFocus
+              disabled={subtaskLoading}
+              maxLength="500"
+            />
+            <textarea
+              className="child-input"
+              placeholder="Description (optional)"
+              value={subtaskDescription}
+              onChange={(e) => setSubtaskDescription(e.target.value)}
+              disabled={subtaskLoading}
+              rows="2"
+            />
+            <div className="add-child-buttons">
+              <button
+                type="submit"
+                className="save-button"
+                disabled={subtaskLoading || !subtaskTitle.trim()}
+              >
+                {subtaskLoading ? 'Adding...' : 'Add Subtask'}
+              </button>
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={handleCancelSubtask}
+                disabled={subtaskLoading}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* PR-8: Recursive rendering of children */}
+      {todo.children && todo.children.length > 0 && (
+        <div className="todo-children">
+          {todo.children.map((child) => (
+            <TodoItem
+              key={child.id}
+              todo={child}
+              listId={listId}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              onCreateSubtask={onCreateSubtask}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

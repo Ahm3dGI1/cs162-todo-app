@@ -122,8 +122,10 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo }) {
             <TodoItem
               key={todo.id}
               todo={todo}
+              listId={list.id}
               onUpdate={onUpdateTodo}
               onDelete={onDeleteTodo}
+              onCreateSubtask={onCreateTodo}
             />
           ))
         )}
