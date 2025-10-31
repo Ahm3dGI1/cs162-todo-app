@@ -193,7 +193,7 @@ def delete_list(list_id):
 @login_required
 def get_todos(list_id):
     """
-    Get all todos for a specific list (PR-8: Returns hierarchical structure).
+    Get all todos for a specific list (Returns hierarchical structure).
 
     Args:
         list_id: ID of the list to get todos from
@@ -222,7 +222,7 @@ def get_todos(list_id):
         parent_id=None
     ).order_by(TodoItem.created_at).all()
 
-    # PR-8: Return hierarchical structure with children
+    # Return hierarchical structure with children
     return jsonify({
         'todos': [todo.to_dict(include_children=True) for todo in todos]
     }), 200
@@ -232,7 +232,7 @@ def get_todos(list_id):
 @login_required
 def create_todo():
     """
-    Create a new todo item (PR-8: Now supports parent_id for hierarchical todos).
+    Create a new todo item (Now supports parent_id for hierarchical todos).
 
     Expected JSON body:
         {
@@ -259,7 +259,7 @@ def create_todo():
     list_id = data['list_id']
     title = data['title'].strip()
     description = data.get('description', '').strip()
-    parent_id = data.get('parent_id')  # PR-8: Now accepting parent_id
+    parent_id = data.get('parent_id')  # Now accepting parent_id
 
     # Validate title length
     if len(title) < 1:
@@ -278,7 +278,7 @@ def create_todo():
     if todo_list.user_id != user_id:
         return jsonify({'error': 'Not authorized to add to this list'}), 403
 
-    # PR-8: Calculate depth based on parent
+    # Calculate depth based on parent
     depth = 0
     if parent_id:
         parent_todo = TodoItem.query.get(parent_id)

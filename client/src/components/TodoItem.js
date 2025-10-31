@@ -5,7 +5,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description || '');
 
-  // PR-8: Add subtask form state
+  //  Add subtask form state
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskDescription, setSubtaskDescription] = useState('');
@@ -41,7 +41,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   };
 
   /**
-   * Handle checkbox toggle (not functional yet in PR-7)
+   * Handle checkbox toggle
    */
   const handleToggleComplete = () => {
     // Will be implemented in later PR
@@ -66,7 +66,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   };
 
   /**
-   * PR-8: Handle create subtask
+   *  Handle create subtask
    */
   const handleCreateSubtask = async (e) => {
     e.preventDefault();
@@ -97,7 +97,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   };
 
   /**
-   * PR-8: Cancel subtask form
+   *  Cancel subtask form
    */
   const handleCancelSubtask = () => {
     setShowSubtaskForm(false);
@@ -105,7 +105,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
     setSubtaskDescription('');
   };
 
-  // PR-8: Check if max depth reached
+  //  Check if max depth reached
   const canAddSubtask = todo.depth < 2;
 
   if (isEditing) {
@@ -174,7 +174,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
 
         {/* Action buttons */}
         <div className="todo-actions">
-          {/* PR-8: Add Subtask button */}
+          {/*  Add Subtask button */}
           {canAddSubtask ? (
             <button
               className="action-button"
@@ -209,7 +209,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
         </div>
       </div>
 
-      {/* PR-8: Subtask creation form */}
+      {/*  Subtask creation form */}
       {showSubtaskForm && (
         <div className="add-child-form">
           <form onSubmit={handleCreateSubtask}>
@@ -252,7 +252,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
         </div>
       )}
 
-      {/* PR-8: Recursive rendering of children */}
+      {/*  Recursive rendering of children */}
       {todo.children && todo.children.length > 0 && (
         <div className="todo-children">
           {todo.children.map((child) => (
