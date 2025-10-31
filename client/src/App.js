@@ -3,6 +3,7 @@ import './App.css';
 import Login from './components/Login';
 import Register from './components/Register';
 import ListSelector from './components/ListSelector';
+import TodoList from './components/TodoList';
 import { API_ENDPOINTS } from './config/api';
 
 function App() {
@@ -10,9 +11,14 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
 
+  // List state (PR-5)
   const [lists, setLists] = useState([]);
   const [selectedList, setSelectedList] = useState(null);
   const [listsLoading, setListsLoading] = useState(false);
+
+  // Todo state (PR-7)
+  const [todos, setTodos] = useState([]);
+  const [todosLoading, setTodosLoading] = useState(false);
 
   /**
    * Check if user is already logged in on component mount
@@ -162,6 +168,94 @@ function App() {
   };
 
   /**
+   * Fetch todos for the selected list (PR-7)
+   */
+  const fetchTodos = async (listId) => {
+    setTodosLoading(true);
+    try {
+      const response = await fetch(`${API_ENDPOINTS.TODOS}/${listId}`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTodos(data.todos);
+      } else {
+        console.error('Failed to fetch todos');
+        setTodos([]);
+      }
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+      setTodos([]);
+    } finally {
+      setTodosLoading(false);
+    }
+  };
+
+  /**
+   * Create a new todo (PR-7)
+   */
+  const handleCreateTodo = async (todoData) => {
+    const response = await fetch(API_ENDPOINTS.TODOS, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(todoData)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const newTodo = data.todo;
+      setTodos([...todos, newTodo]);
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create todo');
+    }
+  };
+
+  /**
+   * Update a todo (PR-7)
+   */
+  const handleUpdateTodo = async (todoId, updates) => {
+    const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(updates)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const updatedTodo = data.todo;
+      setTodos(todos.map(todo => todo.id === todoId ? updatedTodo : todo));
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update todo');
+    }
+  };
+
+  /**
+   * Delete a todo (PR-7)
+   */
+  const handleDeleteTodo = async (todoId) => {
+    const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+
+    if (response.ok) {
+      setTodos(todos.filter(todo => todo.id !== todoId));
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete todo');
+    }
+  };
+
+  /**
    * Load lists when user logs in
    */
   useEffect(() => {
@@ -169,6 +263,17 @@ function App() {
       fetchLists();
     }
   }, [user]);
+
+  /**
+   * Load todos when selected list changes (PR-7)
+   */
+  useEffect(() => {
+    if (selectedList) {
+      fetchTodos(selectedList.id);
+    } else {
+      setTodos([]);
+    }
+  }, [selectedList]);
 
   /**
    * Render loading state while checking authentication
@@ -252,15 +357,17 @@ function App() {
           {listsLoading ? (
             <div className="loading">Loading lists...</div>
           ) : selectedList ? (
-            <div className="todo-list">
-              <div className="todo-list-header">
-                <h2>{selectedList.name}</h2>
-              </div>
-              <p className="no-todos">
-                Todos will be added in PR-6 and PR-7.
-                For now, you can create and manage lists!
-              </p>
-            </div>
+            todosLoading ? (
+              <div className="loading">Loading todos...</div>
+            ) : (
+              <TodoList
+                list={selectedList}
+                todos={todos}
+                onCreateTodo={handleCreateTodo}
+                onUpdateTodo={handleUpdateTodo}
+                onDeleteTodo={handleDeleteTodo}
+              />
+            )
           ) : (
             <div className="no-list-selected">
               {lists.length === 0 ? (

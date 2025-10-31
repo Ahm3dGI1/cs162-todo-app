@@ -369,7 +369,7 @@ body {
 }
 
 /* ============================================================================
-   TODO LIST STYLES (PR-5 basic, expanded in PR-7)
+   TODO LIST STYLES (PR-7)
    ============================================================================ */
 
 .todo-list {
@@ -396,11 +396,194 @@ body {
   margin: 0;
 }
 
+.add-todo-button {
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.add-todo-button:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.add-todo-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.create-todo-form {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.todo-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+.todo-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.create-todo-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.todos-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .no-todos {
   text-align: center;
   padding: 40px;
   color: #999;
   font-size: 16px;
+}
+
+/* ============================================================================
+   TODO ITEM STYLES (PR-7)
+   ============================================================================ */
+
+.todo-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: white;
+  transition: box-shadow 0.2s;
+}
+
+.todo-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.todo-content {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  gap: 12px;
+}
+
+.todo-content.completed {
+  opacity: 0.6;
+}
+
+.todo-content.completed .todo-title {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.todo-checkbox {
+  margin-top: 2px;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.todo-text {
+  flex: 1;
+  cursor: pointer;
+}
+
+.todo-title {
+  font-weight: 500;
+  color: #333;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.todo-description {
+  color: #666;
+  font-size: 14px;
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+.todo-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.todo-item:hover .todo-actions {
+  opacity: 1;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: #f5f5f5;
+}
+
+.action-button.delete:hover {
+  background-color: #ffebee;
+}
+
+/* Todo Edit Form */
+.todo-edit-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-title-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.edit-title-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.edit-description-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.edit-description-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .save-button {

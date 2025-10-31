@@ -183,3 +183,227 @@ def delete_list(list_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to delete list: {str(e)}'}), 500
+
+
+# ============================================================================
+# TODO ROUTES (PR-6 - Top-Level Only)
+# ============================================================================
+
+@api_bp.route('/todos/<int:list_id>', methods=['GET'])
+@login_required
+def get_todos(list_id):
+    """
+    Get all todos for a specific list (top-level only for PR-6).
+
+    Args:
+        list_id: ID of the list to get todos from
+
+    Returns:
+        200: List of todos
+        401: Not authenticated
+        403: Not authorized to access this list
+        404: List not found
+    """
+    user_id = session.get('user_id')
+
+    # Find the list
+    todo_list = TodoList.query.get(list_id)
+
+    if not todo_list:
+        return jsonify({'error': 'List not found'}), 404
+
+    # Check ownership
+    if todo_list.user_id != user_id:
+        return jsonify({'error': 'Not authorized to access this list'}), 403
+
+    # Get all top-level todos (parent_id is null)
+    todos = TodoItem.query.filter_by(
+        list_id=list_id,
+        parent_id=None
+    ).order_by(TodoItem.created_at).all()
+
+    return jsonify({
+        'todos': [todo.to_dict() for todo in todos]
+    }), 200
+
+
+@api_bp.route('/todos', methods=['POST'])
+@login_required
+def create_todo():
+    """
+    Create a new top-level todo item (PR-6 - no parent support yet).
+
+    Expected JSON body:
+        {
+            "list_id": integer,
+            "title": "string",
+            "description": "string" (optional)
+        }
+
+    Returns:
+        201: Todo created successfully
+        400: Validation error
+        401: Not authenticated
+        403: Not authorized to add to this list
+        404: List not found
+    """
+    user_id = session.get('user_id')
+    data = request.get_json()
+
+    # Validate required fields
+    if not data or not data.get('list_id') or not data.get('title'):
+        return jsonify({'error': 'list_id and title are required'}), 400
+
+    list_id = data['list_id']
+    title = data['title'].strip()
+    description = data.get('description', '').strip()
+
+    # Validate title length
+    if len(title) < 1:
+        return jsonify({'error': 'Title cannot be empty'}), 400
+
+    if len(title) > 500:
+        return jsonify({'error': 'Title must be 500 characters or less'}), 400
+
+    # Find the list
+    todo_list = TodoList.query.get(list_id)
+
+    if not todo_list:
+        return jsonify({'error': 'List not found'}), 404
+
+    # Check ownership
+    if todo_list.user_id != user_id:
+        return jsonify({'error': 'Not authorized to add to this list'}), 403
+
+    # Create new todo (top-level only - parent_id=None, depth=0)
+    try:
+        new_todo = TodoItem(
+            title=title,
+            description=description,
+            list_id=list_id,
+            user_id=user_id,
+            parent_id=None,  # PR-6: Top-level only
+            depth=0,
+            completed=False,
+            collapsed=False
+        )
+
+        db.session.add(new_todo)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Todo created successfully',
+            'todo': new_todo.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to create todo: {str(e)}'}), 500
+
+
+@api_bp.route('/todos/<int:todo_id>', methods=['PUT'])
+@login_required
+def update_todo(todo_id):
+    """
+    Update a todo item.
+
+    Expected JSON body:
+        {
+            "title": "string" (optional),
+            "description": "string" (optional),
+            "completed": boolean (optional)
+        }
+
+    Args:
+        todo_id: ID of the todo to update
+
+    Returns:
+        200: Todo updated successfully
+        400: Validation error
+        401: Not authenticated
+        403: Not authorized to update this todo
+        404: Todo not found
+    """
+    user_id = session.get('user_id')
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    # Find the todo
+    todo = TodoItem.query.get(todo_id)
+
+    if not todo:
+        return jsonify({'error': 'Todo not found'}), 404
+
+    # Check ownership
+    if todo.user_id != user_id:
+        return jsonify({'error': 'Not authorized to update this todo'}), 403
+
+    # Update fields if provided
+    try:
+        if 'title' in data:
+            title = data['title'].strip()
+            if len(title) < 1:
+                return jsonify({'error': 'Title cannot be empty'}), 400
+            if len(title) > 500:
+                return jsonify({'error': 'Title must be 500 characters or less'}), 400
+            todo.title = title
+
+        if 'description' in data:
+            todo.description = data['description'].strip()
+
+        if 'completed' in data:
+            todo.completed = bool(data['completed'])
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Todo updated successfully',
+            'todo': todo.to_dict()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update todo: {str(e)}'}), 500
+
+
+@api_bp.route('/todos/<int:todo_id>', methods=['DELETE'])
+@login_required
+def delete_todo(todo_id):
+    """
+    Delete a todo item.
+
+    Args:
+        todo_id: ID of the todo to delete
+
+    Returns:
+        200: Todo deleted successfully
+        401: Not authenticated
+        403: Not authorized to delete this todo
+        404: Todo not found
+    """
+    user_id = session.get('user_id')
+
+    # Find the todo
+    todo = TodoItem.query.get(todo_id)
+
+    if not todo:
+        return jsonify({'error': 'Todo not found'}), 404
+
+    # Check ownership
+    if todo.user_id != user_id:
+        return jsonify({'error': 'Not authorized to delete this todo'}), 403
+
+    # Delete the todo
+    try:
+        db.session.delete(todo)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Todo deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete todo: {str(e)}'}), 500
