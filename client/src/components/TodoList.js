@@ -26,7 +26,7 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo }) {
 
     try {
       await onCreateTodo({
-        list_id: list.id,
+        project_id: list.id,
         title: trimmedTitle,
         description: newTodoDescription.trim()
       });

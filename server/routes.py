@@ -7,34 +7,34 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 
 # ============================================================================
-# LIST ROUTES (PR-4)
+# PROJECT ROUTES (PR-4)
 # ============================================================================
 
-@api_bp.route('/lists', methods=['GET'])
+@api_bp.route('/projects', methods=['GET'])
 @login_required
-def get_lists():
+def get_projects():
     """
-    Get all todo lists for the current user.
+    Get all projects for the current user.
 
     Returns:
-        200: List of user's todo lists
+        200: List of user's projects
         401: Not authenticated
     """
     user_id = session.get('user_id')
 
-    # Get all lists owned by this user
-    lists = TodoList.query.filter_by(user_id=user_id).order_by(TodoList.created_at).all()
+    # Get all projects owned by this user
+    projects = TodoList.query.filter_by(user_id=user_id).order_by(TodoList.created_at).all()
 
     return jsonify({
-        'lists': [todo_list.to_dict() for todo_list in lists]
+        'projects': [project.to_dict() for project in projects]
     }), 200
 
 
-@api_bp.route('/lists', methods=['POST'])
+@api_bp.route('/projects', methods=['POST'])
 @login_required
-def create_list():
+def create_project():
     """
-    Create a new todo list.
+    Create a new project.
 
     Expected JSON body:
         {
@@ -42,7 +42,7 @@ def create_list():
         }
 
     Returns:
-        201: List created successfully
+        201: Project created successfully
         400: Validation error
         401: Not authenticated
     """
@@ -51,42 +51,42 @@ def create_list():
 
     # Validate required fields
     if not data or not data.get('name'):
-        return jsonify({'error': 'List name is required'}), 400
+        return jsonify({'error': 'Project name is required'}), 400
 
     name = data['name'].strip()
 
     # Validate name length
     if len(name) < 1:
-        return jsonify({'error': 'List name cannot be empty'}), 400
+        return jsonify({'error': 'Project name cannot be empty'}), 400
 
     if len(name) > 200:
-        return jsonify({'error': 'List name must be 200 characters or less'}), 400
+        return jsonify({'error': 'Project name must be 200 characters or less'}), 400
 
-    # Create new list
+    # Create new project
     try:
-        new_list = TodoList(
+        new_project = TodoList(
             name=name,
             user_id=user_id
         )
 
-        db.session.add(new_list)
+        db.session.add(new_project)
         db.session.commit()
 
         return jsonify({
-            'message': 'List created successfully',
-            'list': new_list.to_dict()
+            'message': 'Project created successfully',
+            'project': new_project.to_dict()
         }), 201
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Failed to create list: {str(e)}'}), 500
+        return jsonify({'error': f'Failed to create project: {str(e)}'}), 500
 
 
-@api_bp.route('/lists/<int:list_id>', methods=['PUT'])
+@api_bp.route('/projects/<int:project_id>', methods=['PUT'])
 @login_required
-def update_list(list_id):
+def update_project(project_id):
     """
-    Update a todo list's name.
+    Update a project's name.
 
     Expected JSON body:
         {
@@ -94,131 +94,131 @@ def update_list(list_id):
         }
 
     Args:
-        list_id: ID of the list to update
+        project_id: ID of the project to update
 
     Returns:
-        200: List updated successfully
+        200: Project updated successfully
         400: Validation error
         401: Not authenticated
-        403: Not authorized to update this list
-        404: List not found
+        403: Not authorized to update this project
+        404: Project not found
     """
     user_id = session.get('user_id')
     data = request.get_json()
 
     # Validate required fields
     if not data or not data.get('name'):
-        return jsonify({'error': 'List name is required'}), 400
+        return jsonify({'error': 'Project name is required'}), 400
 
     name = data['name'].strip()
 
     # Validate name length
     if len(name) < 1:
-        return jsonify({'error': 'List name cannot be empty'}), 400
+        return jsonify({'error': 'Project name cannot be empty'}), 400
 
     if len(name) > 200:
-        return jsonify({'error': 'List name must be 200 characters or less'}), 400
+        return jsonify({'error': 'Project name must be 200 characters or less'}), 400
 
-    # Find the list
-    todo_list = TodoList.query.get(list_id)
+    # Find the project
+    project = TodoList.query.get(project_id)
 
-    if not todo_list:
-        return jsonify({'error': 'List not found'}), 404
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
 
     # Check ownership
-    if todo_list.user_id != user_id:
-        return jsonify({'error': 'Not authorized to update this list'}), 403
+    if project.user_id != user_id:
+        return jsonify({'error': 'Not authorized to update this project'}), 403
 
-    # Update the list
+    # Update the project
     try:
-        todo_list.name = name
+        project.name = name
         db.session.commit()
 
         return jsonify({
-            'message': 'List updated successfully',
-            'list': todo_list.to_dict()
+            'message': 'Project updated successfully',
+            'project': project.to_dict()
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Failed to update list: {str(e)}'}), 500
+        return jsonify({'error': f'Failed to update project: {str(e)}'}), 500
 
 
-@api_bp.route('/lists/<int:list_id>', methods=['DELETE'])
+@api_bp.route('/projects/<int:project_id>', methods=['DELETE'])
 @login_required
-def delete_list(list_id):
+def delete_project(project_id):
     """
-    Delete a todo list and all its todos.
+    Delete a project and all its todos.
 
     Args:
-        list_id: ID of the list to delete
+        project_id: ID of the project to delete
 
     Returns:
-        200: List deleted successfully
+        200: Project deleted successfully
         401: Not authenticated
-        403: Not authorized to delete this list
-        404: List not found
+        403: Not authorized to delete this project
+        404: Project not found
     """
     user_id = session.get('user_id')
 
-    # Find the list
-    todo_list = TodoList.query.get(list_id)
+    # Find the project
+    project = TodoList.query.get(project_id)
 
-    if not todo_list:
-        return jsonify({'error': 'List not found'}), 404
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
 
     # Check ownership
-    if todo_list.user_id != user_id:
-        return jsonify({'error': 'Not authorized to delete this list'}), 403
+    if project.user_id != user_id:
+        return jsonify({'error': 'Not authorized to delete this project'}), 403
 
-    # Delete the list (cascade will delete all todos)
+    # Delete the project (cascade will delete all todos)
     try:
-        db.session.delete(todo_list)
+        db.session.delete(project)
         db.session.commit()
 
         return jsonify({
-            'message': 'List deleted successfully'
+            'message': 'Project deleted successfully'
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Failed to delete list: {str(e)}'}), 500
+        return jsonify({'error': f'Failed to delete project: {str(e)}'}), 500
 
 
 # ============================================================================
 # TODO ROUTES (PR-6 - Top-Level Only)
 # ============================================================================
 
-@api_bp.route('/todos/<int:list_id>', methods=['GET'])
+@api_bp.route('/todos/<int:project_id>', methods=['GET'])
 @login_required
-def get_todos(list_id):
+def get_todos(project_id):
     """
-    Get all todos for a specific list (Returns hierarchical structure).
+    Get all todos for a specific project (Returns hierarchical structure).
 
     Args:
-        list_id: ID of the list to get todos from
+        project_id: ID of the project to get todos from
 
     Returns:
         200: Hierarchical list of todos (only top-level, with nested children)
         401: Not authenticated
-        403: Not authorized to access this list
-        404: List not found
+        403: Not authorized to access this project
+        404: Project not found
     """
     user_id = session.get('user_id')
 
-    # Find the list
-    todo_list = TodoList.query.get(list_id)
+    # Find the project
+    project = TodoList.query.get(project_id)
 
-    if not todo_list:
-        return jsonify({'error': 'List not found'}), 404
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
 
     # Check ownership
-    if todo_list.user_id != user_id:
-        return jsonify({'error': 'Not authorized to access this list'}), 403
+    if project.user_id != user_id:
+        return jsonify({'error': 'Not authorized to access this project'}), 403
 
     # Get all top-level todos (parent_id is null) with their children
     todos = TodoItem.query.filter_by(
-        list_id=list_id,
+        list_id=project_id,
         parent_id=None
     ).order_by(TodoItem.created_at).all()
 
@@ -236,7 +236,7 @@ def create_todo():
 
     Expected JSON body:
         {
-            "list_id": integer,
+            "project_id": integer,
             "title": "string",
             "description": "string" (optional),
             "parent_id": integer (optional, for subtasks)
@@ -246,17 +246,17 @@ def create_todo():
         201: Todo created successfully
         400: Validation error (including depth limit)
         401: Not authenticated
-        403: Not authorized to add to this list
-        404: List or parent todo not found
+        403: Not authorized to add to this project
+        404: Project or parent todo not found
     """
     user_id = session.get('user_id')
     data = request.get_json()
 
     # Validate required fields
-    if not data or not data.get('list_id') or not data.get('title'):
-        return jsonify({'error': 'list_id and title are required'}), 400
+    if not data or not data.get('project_id') or not data.get('title'):
+        return jsonify({'error': 'project_id and title are required'}), 400
 
-    list_id = data['list_id']
+    project_id = data['project_id']
     title = data['title'].strip()
     description = data.get('description', '').strip()
     parent_id = data.get('parent_id')  # Now accepting parent_id
@@ -268,15 +268,15 @@ def create_todo():
     if len(title) > 500:
         return jsonify({'error': 'Title must be 500 characters or less'}), 400
 
-    # Find the list
-    todo_list = TodoList.query.get(list_id)
+    # Find the project
+    project = TodoList.query.get(project_id)
 
-    if not todo_list:
-        return jsonify({'error': 'List not found'}), 404
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
 
     # Check ownership
-    if todo_list.user_id != user_id:
-        return jsonify({'error': 'Not authorized to add to this list'}), 403
+    if project.user_id != user_id:
+        return jsonify({'error': 'Not authorized to add to this project'}), 403
 
     # Calculate depth based on parent
     depth = 0
@@ -286,12 +286,12 @@ def create_todo():
         if not parent_todo:
             return jsonify({'error': 'Parent todo not found'}), 404
 
-        # Verify parent belongs to user and same list
+        # Verify parent belongs to user and same project
         if parent_todo.user_id != user_id:
             return jsonify({'error': 'Not authorized to add subtask to this todo'}), 403
 
-        if parent_todo.list_id != list_id:
-            return jsonify({'error': 'Parent todo must be in the same list'}), 400
+        if parent_todo.list_id != project_id:
+            return jsonify({'error': 'Parent todo must be in the same project'}), 400
 
         # Calculate depth (max depth is 2, meaning levels 0, 1, 2)
         depth = parent_todo.depth + 1
@@ -304,7 +304,7 @@ def create_todo():
         new_todo = TodoItem(
             title=title,
             description=description,
-            list_id=list_id,
+            list_id=project_id,
             user_id=user_id,
             parent_id=parent_id,
             depth=depth,

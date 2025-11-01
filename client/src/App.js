@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Login from './components/Login';
 import Register from './components/Register';
-import ListSelector from './components/ListSelector';
+import Dashboard from './components/Dashboard';
+import Sidebar from './components/Sidebar';
 import TodoList from './components/TodoList';
 import { API_ENDPOINTS } from './config/api';
 
@@ -11,12 +12,16 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
 
-  // List state (PR-5)
-  const [lists, setLists] = useState([]);
-  const [selectedList, setSelectedList] = useState(null);
-  const [listsLoading, setListsLoading] = useState(false);
+  // Project state
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' or 'project'
 
-  // Todo state 
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Todo state
   const [todos, setTodos] = useState([]);
   const [todosLoading, setTodosLoading] = useState(false);
 
@@ -76,46 +81,43 @@ function App() {
       });
 
       setUser(null);
-      setLists([]);
-      setSelectedList(null);
+      setProjects([]);
+      setSelectedProject(null);
+      setViewMode('dashboard');
+      setSidebarOpen(false);
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
 
   /**
-   * Fetch all lists for the current user
+   * Fetch all projects for the current user
    */
-  const fetchLists = async () => {
-    setListsLoading(true);
+  const fetchProjects = async () => {
+    setProjectsLoading(true);
     try {
-      const response = await fetch(API_ENDPOINTS.LISTS, {
+      const response = await fetch(API_ENDPOINTS.PROJECTS, {
         credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        setLists(data.lists);
-
-        // Auto-select first list if none selected
-        if (data.lists.length > 0 && !selectedList) {
-          setSelectedList(data.lists[0]);
-        }
+        setProjects(data.projects);
       } else {
-        console.error('Failed to fetch lists');
+        console.error('Failed to fetch projects');
       }
     } catch (error) {
-      console.error('Error fetching lists:', error);
+      console.error('Error fetching projects:', error);
     } finally {
-      setListsLoading(false);
+      setProjectsLoading(false);
     }
   };
 
   /**
-   * Create a new list
+   * Create a new project
    */
-  const handleCreateList = async (name) => {
-    const response = await fetch(API_ENDPOINTS.LISTS, {
+  const handleCreateProject = async (name) => {
+    const response = await fetch(API_ENDPOINTS.PROJECTS, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -126,54 +128,62 @@ function App() {
 
     if (response.ok) {
       const data = await response.json();
-      const newList = data.list;
-      setLists([...lists, newList]);
-
-      // Auto-select the new list
-      setSelectedList(newList);
+      const newProject = data.project;
+      setProjects([...projects, newProject]);
     } else {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to create list');
+      throw new Error(error.error || 'Failed to create project');
     }
   };
 
   /**
-   * Select a list
+   * Select a project and switch to project view
    */
-  const handleSelectList = (list) => {
-    setSelectedList(list);
+  const handleSelectProject = (project) => {
+    setSelectedProject(project);
+    setViewMode('project');
   };
 
   /**
-   * Delete a list
+   * Navigate back to dashboard
    */
-  const handleDeleteList = async (listId) => {
-    const response = await fetch(`${API_ENDPOINTS.LISTS}/${listId}`, {
+  const handleBackToDashboard = () => {
+    setViewMode('dashboard');
+    setSelectedProject(null);
+    setTodos([]);
+    setSidebarOpen(false);
+  };
+
+  /**
+   * Delete a project
+   */
+  const handleDeleteProject = async (projectId) => {
+    const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
       method: 'DELETE',
       credentials: 'include'
     });
 
     if (response.ok) {
-      const updatedLists = lists.filter(list => list.id !== listId);
-      setLists(updatedLists);
+      const updatedProjects = projects.filter(project => project.id !== projectId);
+      setProjects(updatedProjects);
 
-      // If deleted list was selected, select first remaining list
-      if (selectedList?.id === listId) {
-        setSelectedList(updatedLists.length > 0 ? updatedLists[0] : null);
+      // If deleted project was selected, go back to dashboard
+      if (selectedProject?.id === projectId) {
+        handleBackToDashboard();
       }
     } else {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to delete list');
+      throw new Error(error.error || 'Failed to delete project');
     }
   };
 
   /**
-   * Fetch todos for the selected list 
+   * Fetch todos for the selected project
    */
-  const fetchTodos = async (listId) => {
+  const fetchTodos = async (projectId) => {
     setTodosLoading(true);
     try {
-      const response = await fetch(`${API_ENDPOINTS.TODOS}/${listId}`, {
+      const response = await fetch(`${API_ENDPOINTS.TODOS}/${projectId}`, {
         credentials: 'include'
       });
 
@@ -207,8 +217,8 @@ function App() {
 
     if (response.ok) {
       // Refetch todos to get updated hierarchical structure
-      if (selectedList) {
-        await fetchTodos(selectedList.id);
+      if (selectedProject) {
+        await fetchTodos(selectedProject.id);
       }
     } else {
       const error = await response.json();
@@ -217,7 +227,7 @@ function App() {
   };
 
   /**
-   * Update a todo 
+   * Update a todo
    */
   const handleUpdateTodo = async (todoId, updates) => {
     const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
@@ -231,8 +241,8 @@ function App() {
 
     if (response.ok) {
       // Refetch to maintain hierarchical structure
-      if (selectedList) {
-        await fetchTodos(selectedList.id);
+      if (selectedProject) {
+        await fetchTodos(selectedProject.id);
       }
     } else {
       const error = await response.json();
@@ -251,8 +261,8 @@ function App() {
 
     if (response.ok) {
       // Refetch to maintain hierarchical structure
-      if (selectedList) {
-        await fetchTodos(selectedList.id);
+      if (selectedProject) {
+        await fetchTodos(selectedProject.id);
       }
     } else {
       const error = await response.json();
@@ -261,24 +271,24 @@ function App() {
   };
 
   /**
-   * Load lists when user logs in
+   * Load projects when user logs in
    */
   useEffect(() => {
     if (user) {
-      fetchLists();
+      fetchProjects();
     }
   }, [user]);
 
   /**
-   * Load todos when selected list changes 
+   * Load todos when selected project changes
    */
   useEffect(() => {
-    if (selectedList) {
-      fetchTodos(selectedList.id);
+    if (selectedProject) {
+      fetchTodos(selectedProject.id);
     } else {
       setTodos([]);
     }
-  }, [selectedList]);
+  }, [selectedProject]);
 
   /**
    * Render loading state while checking authentication
@@ -337,55 +347,57 @@ function App() {
    */
   return (
     <div className="App">
-      <header className="app-header">
-        <h1>📝 Hierarchical Todo List</h1>
-        <div className="user-info">
-          <span>Welcome, {user.username}!</span>
-          <button onClick={handleLogout} className="logout-button">
-            Logout
-          </button>
-        </div>
-      </header>
+      {/* Hamburger Menu Button (only in project view) */}
+      {viewMode === 'project' && (
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+      )}
 
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        currentProject={selectedProject}
+        onBackToDashboard={handleBackToDashboard}
+        user={user}
+        onLogout={handleLogout}
+      />
+
+      {/* Main Content */}
       <div className="app-content">
-        {/* List Selector Sidebar (PR-5) */}
-        <ListSelector
-          lists={lists}
-          selectedList={selectedList}
-          onSelectList={handleSelectList}
-          onCreateList={handleCreateList}
-          onDeleteList={handleDeleteList}
-        />
-
-        {/* Main Content Area */}
-        <div className="main-content">
-          {listsLoading ? (
-            <div className="loading">Loading lists...</div>
-          ) : selectedList ? (
-            todosLoading ? (
-              <div className="loading">Loading todos...</div>
-            ) : (
+        {viewMode === 'dashboard' ? (
+          /* Dashboard View */
+          projectsLoading ? (
+            <div className="loading">Loading projects...</div>
+          ) : (
+            <Dashboard
+              projects={projects}
+              onSelectProject={handleSelectProject}
+              onCreateProject={handleCreateProject}
+              onDeleteProject={handleDeleteProject}
+            />
+          )
+        ) : (
+          /* Project View */
+          <div className="project-view">
+            {todosLoading ? (
+              <div className="loading">Loading tasks...</div>
+            ) : selectedProject ? (
               <TodoList
-                list={selectedList}
+                list={selectedProject}
                 todos={todos}
                 onCreateTodo={handleCreateTodo}
                 onUpdateTodo={handleUpdateTodo}
                 onDeleteTodo={handleDeleteTodo}
               />
-            )
-          ) : (
-            <div className="no-list-selected">
-              {lists.length === 0 ? (
-                <>
-                  <p>No lists yet.</p>
-                  <p>Create your first list to get started!</p>
-                </>
-              ) : (
-                <p>Select a list from the sidebar</p>
-              )}
-            </div>
-          )}
-        </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

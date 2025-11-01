@@ -79,7 +79,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
     setSubtaskLoading(true);
     try {
       await onCreateSubtask({
-        list_id: listId,
+        project_id: listId,
         parent_id: todo.id,
         title: subtaskTitle.trim(),
         description: subtaskDescription.trim()
