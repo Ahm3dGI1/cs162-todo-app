@@ -108,6 +108,19 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   //  Check if max depth reached
   const canAddSubtask = todo.depth < 2;
 
+  /**
+   * Handle toggle collapse
+   */
+  const handleToggleCollapse = async () => {
+    try {
+      await onUpdate(todo.id, {
+        collapsed: !todo.collapsed
+      });
+    } catch (err) {
+      alert('Failed to toggle collapse: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   if (isEditing) {
     return (
       <div className={`todo-item depth-${todo.depth}`}>
@@ -155,6 +168,19 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   return (
     <div className={`todo-item depth-${todo.depth}`}>
       <div className={`todo-content ${todo.completed ? 'completed' : ''}`}>
+        {/* Collapse/Expand button (only if has children) */}
+        {todo.children && todo.children.length > 0 ? (
+          <button
+            className="collapse-button"
+            onClick={handleToggleCollapse}
+            title={todo.collapsed ? 'Expand' : 'Collapse'}
+          >
+            {todo.collapsed ? '▶' : '▼'}
+          </button>
+        ) : (
+          <div className="collapse-spacer"></div>
+        )}
+
         {/* Checkbox (not functional yet) */}
         <input
           type="checkbox"
@@ -252,8 +278,8 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
         </div>
       )}
 
-      {/*  Recursive rendering of children */}
-      {todo.children && todo.children.length > 0 && (
+      {/*  Recursive rendering of children (only if not collapsed) */}
+      {todo.children && todo.children.length > 0 && !todo.collapsed && (
         <div className="todo-children">
           {todo.children.map((child) => (
             <TodoItem

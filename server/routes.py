@@ -380,6 +380,9 @@ def update_todo(todo_id):
         if 'completed' in data:
             todo.completed = bool(data['completed'])
 
+        if 'collapsed' in data:
+            todo.collapsed = bool(data['collapsed'])
+
         db.session.commit()
 
         return jsonify({

@@ -24,143 +24,153 @@ This guide breaks down the Hierarchical Todo List project into **manageable PRs*
 
 
 ## 📦 Detailed PR Breakdown
+# Pull Request Development Roadmap
 
-
-### PR-4: Todo Lists Backend
-
-**Goal:** API for creating and managing todo lists
-
-**Branch:** `feature/lists-backend`
-
-**Depends On:** PR-2 (needs auth)
-
-#### Files to Create/Modify:
-- `backend/routes.py` (new file - list routes)
-- `backend/app.py` (register routes blueprint)
-
-#### Features:
-- ✅ GET `/api/lists` - Get all user's lists
-- ✅ POST `/api/lists` - Create new list
-- ✅ PUT `/api/lists/:id` - Update list name
-- ✅ DELETE `/api/lists/:id` - Delete list
-- ✅ All routes protected with `@login_required`
-
+This guide breaks down the Hierarchical Todo List project into **manageable PRs** that build on each other. Each PR represents a working, testable feature.
 
 ---
 
-### PR-5: Todo Lists Frontend
+## 🎯 Development Strategy
 
-**Goal:** UI for managing todo lists
+### PR-9: Collapse/Expand Feature
 
-**Branch:** `feature/lists-frontend`
+**Goal:** Add ability to hide/show subtasks
 
-**Depends On:** PR-3, PR-4
+**Branch:** `feature/collapse-expand`
 
-#### Files to Create/Modify:
-- `frontend/src/components/ListSelector.js` (new file)
-- `frontend/src/App.js` (add list state and management)
-- `frontend/src/App.css` (add list selector styles)
-
-#### Features:
-- ✅ Sidebar showing all lists
-- ✅ Create new list button + form
-- ✅ Select/highlight active list
-- ✅ Delete list button
-- ✅ Auto-select first list on load
-
-#### What Should Work:
-- User sees sidebar with "+ New List" button
-- User can create multiple lists
-- Clicking a list selects it (highlights)
-- User can delete a list (with confirmation)
-- Main content area shows selected list name
-
----
-
-### PR-6: Basic Todos Backend (Top-Level Only)
-
-**Goal:** API for creating and managing top-level todos (no subtasks yet)
-
-**Branch:** `feature/todos-backend`
-
-**Depends On:** PR-4
+**Depends On:** PR-8
 
 #### Files to Modify:
-- `backend/routes.py` (add todo routes)
+- `backend/routes.py` (update PUT todo to handle `collapsed` field)
+- `frontend/src/components/TodoItem.js` (add collapse button, conditionally render children)
+- `frontend/src/App.css` (add collapse button styles)
 
 #### Features:
-- ✅ GET `/api/todos/:list_id` - Get all todos in a list
-- ✅ POST `/api/todos` - Create new todo (parent_id = null only)
-- ✅ PUT `/api/todos/:id` - Update todo
-- ✅ DELETE `/api/todos/:id` - Delete todo
-- ✅ Authorization checks (user owns the todo)
-
-#### Note:
-**For this PR, ignore parent_id completely. Only create top-level todos.**
-
----
-
-### PR-7: Basic Todos Frontend (Top-Level Only)
-
-**Goal:** UI for managing top-level todos
-
-**Branch:** `feature/todos-frontend`
-
-**Depends On:** PR-5, PR-6
-
-#### Files to Create/Modify:
-- `frontend/src/components/TodoList.js` (new file - list container)
-- `frontend/src/components/TodoItem.js` (new file - single todo, non-recursive for now)
-- `frontend/src/App.js` (render TodoList component)
-- `frontend/src/App.css` (add todo styles)
-
-#### Features:
-- ✅ Display todos for selected list
-- ✅ "+ Add Task" button
-- ✅ Create new todo form
-- ✅ Display todo title
-- ✅ Edit todo (inline or modal)
-- ✅ Delete todo button
-- ✅ Basic checkbox (not functional yet)
+- ✅ Add `collapsed` boolean field to TodoItem model
+- ✅ Update endpoint accepts `collapsed` in request
+- ✅ Frontend shows ▶/▼ arrow button when todo has children
+- ✅ Clicking arrow toggles collapsed state
+- ✅ Children hidden when collapsed = true
+- ✅ Collapsed state persists in database
 
 #### What Should Work:
-- User sees list of todos for selected list
-- User can add new todos
-- User can edit todo titles
-- User can delete todos
-- No subtasks, completion, or collapse yet
+- Todos with children show collapse arrow
+- Clicking ▶ expands (shows children)
+- Clicking ▼ collapses (hides children)
+- State persists after refresh
 
----
+### PR-10: Task Completion Feature
 
-### PR-8: Hierarchical Todos (Add Subtasks)
+**Goal:** Mark tasks as complete/incomplete
 
-**Goal:** Enable creating subtasks up to 3 levels
+**Branch:** `feature/task-completion`
 
-**Branch:** `feature/hierarchical-todos`
-
-**Depends On:** PR-7
+**Depends On:** PR-9
 
 #### Files to Modify:
-- `backend/routes.py` (update create todo to handle parent_id, add depth validation)
-- `frontend/src/components/TodoItem.js` (make recursive, add "+ subtask" button)
-- `frontend/src/App.css` (add indentation styles for depth)
+- `backend/routes.py` (update PUT todo to handle `completed` field)
+- `frontend/src/components/TodoItem.js` (add functional checkbox)
+- `frontend/src/App.css` (add completed task styles)
 
-#### Backend Changes:
-- ✅ Allow `parent_id` in POST `/api/todos`
-- ✅ Validate depth limit (max depth = 2, meaning 3 levels: 0, 1, 2)
-- ✅ Return hierarchical structure in GET `/api/todos/:list_id`
-- ✅ Calculate and return `depth` for each todo
-
-#### Frontend Changes:
-- ✅ Make TodoItem recursive (renders itself for children)
-- ✅ Add "+ Add Subtask" button on each todo
-- ✅ Show depth with indentation (different styles for depth-0, depth-1, depth-2)
-- ✅ Disable "Add Subtask" button at depth 2
-- ✅ Display depth limit message
+#### Features:
+- ✅ Checkbox toggles `completed` boolean
+- ✅ Completed tasks have visual styling (strikethrough, opacity)
+- ✅ Completed state persists in database
+- ✅ Can toggle back to incomplete
 
 #### What Should Work:
-- User can add subtask to any todo
-- User can add sub-subtask to subtasks
-- System prevents adding 4th level
-- Visual indentation shows hierarchy
-- Deleting parent deletes all children
+- Checking checkbox marks task complete
+- Completed tasks show strikethrough
+- Unchecking checkbox marks incomplete
+- State persists after refresh
+
+### PR-11: Move Tasks Between Lists
+
+**Goal:** Move top-level tasks to different lists
+
+**Branch:** `feature/move-tasks`
+
+**Depends On:** PR-10
+
+#### Files to Modify:
+- `backend/routes.py` (add PUT `/api/todos/:id/move` endpoint)
+- `frontend/src/components/TodoItem.js` (add move button/dropdown for top-level only)
+- `frontend/src/App.css` (add move UI styles)
+
+#### Features:
+- ✅ Backend endpoint to move todo to different list
+- ✅ Recursively update list_id for todo and all children
+- ✅ Frontend shows move button only on top-level todos
+- ✅ Dropdown/modal to select target list
+- ✅ Moved todo appears in new list
+
+#### What Should Work:
+- Top-level todos have "Move to..." option
+- User selects target list
+- Todo and all subtasks move to new list
+- Subtasks cannot be moved (button hidden)
+
+### PR-12: Edit & Delete Polish
+
+**Goal:** Improve edit/delete UX
+
+**Branch:** `feature/edit-delete-polish`
+
+**Depends On:** PR-11
+
+#### Files to Modify:
+- `frontend/src/components/TodoItem.js` (improve edit form, add descriptions)
+- `frontend/src/App.css` (polish styles)
+
+#### Features:
+- ✅ Edit todo title inline
+- ✅ Add optional description field
+- ✅ Delete confirmation dialog
+- ✅ Better button placement
+- ✅ Loading states during operations
+
+#### What Should Work:
+- Click todo to edit in place
+- Can add/edit description
+- Delete asks for confirmation
+- UI is polished and clear
+
+### PR-13: Final Polish & Bug Fixes
+
+**Goal:** Final touches, documentation, and testing
+
+**Branch:** `feature/final-polish`
+
+**Depends On:** PR-12
+
+#### Files to Modify:
+- `README.md` (complete documentation)
+- `frontend/src/App.css` (final style tweaks)
+- Any bug fixes discovered during testing
+
+#### Tasks:
+- ✅ Complete README with all sections
+- ✅ Test all features end-to-end
+- ✅ Fix any discovered bugs
+- ✅ Add loading states where missing
+- ✅ Improve error messages
+- ✅ Mobile responsiveness (optional)
+- ✅ Code cleanup and comments
+- ✅ Remove console.logs
+
+#### What Should Work:
+- All MVP features working perfectly
+- No console errors
+- Clean, polished UI
+- Complete documentation
+
+## 🎯 Testing Checklist After Each PR
+
+After merging each PR, verify:
+
+- [ ] Backend starts without errors
+- [ ] Frontend starts without errors
+- [ ] New feature works as expected
+- [ ] Previous features still work (regression test)
+- [ ] No console errors in browser
+- [ ] No errors in terminal
