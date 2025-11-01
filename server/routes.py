@@ -259,6 +259,7 @@ def create_todo():
     project_id = data['project_id']
     title = data['title'].strip()
     description = data.get('description', '').strip()
+    priority = data.get('priority', 'medium')  # New priority field
     parent_id = data.get('parent_id')  # Now accepting parent_id
 
     # Validate title length
@@ -299,11 +300,16 @@ def create_todo():
         if depth > 2:
             return jsonify({'error': 'Maximum nesting depth reached (3 levels max)'}), 400
 
+    # Validate priority
+    if priority not in ['low', 'medium', 'high']:
+        priority = 'medium'
+
     # Create new todo
     try:
         new_todo = TodoItem(
             title=title,
             description=description,
+            priority=priority,
             list_id=project_id,
             user_id=user_id,
             parent_id=parent_id,
@@ -392,6 +398,11 @@ def update_todo(todo_id):
 
         if 'collapsed' in data:
             todo.collapsed = bool(data['collapsed'])
+
+        if 'priority' in data:
+            priority = data['priority']
+            if priority in ['low', 'medium', 'high']:
+                todo.priority = priority
 
         db.session.commit()
 

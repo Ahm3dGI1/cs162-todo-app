@@ -15,11 +15,13 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description || '');
+  const [editPriority, setEditPriority] = useState(todo.priority || 'medium');
 
   //  Add subtask form state
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskDescription, setSubtaskDescription] = useState('');
+  const [subtaskPriority, setSubtaskPriority] = useState('medium');
   const [subtaskLoading, setSubtaskLoading] = useState(false);
 
   //  Loading states for operations
@@ -43,7 +45,8 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     try {
       await onUpdate(todo.id, {
         title: editTitle.trim(),
-        description: editDescription.trim()
+        description: editDescription.trim(),
+        priority: editPriority
       });
       setIsEditing(false);
     } catch (err) {
@@ -59,6 +62,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
   const handleCancelEdit = () => {
     setEditTitle(todo.title);
     setEditDescription(todo.description || '');
+    setEditPriority(todo.priority || 'medium');
     setIsEditing(false);
   };
 
@@ -111,12 +115,14 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
         project_id: listId,
         parent_id: todo.id,
         title: subtaskTitle.trim(),
-        description: subtaskDescription.trim()
+        description: subtaskDescription.trim(),
+        priority: subtaskPriority
       });
 
       // Reset form
       setSubtaskTitle('');
       setSubtaskDescription('');
+      setSubtaskPriority('medium');
       setShowSubtaskForm(false);
     } catch (err) {
       alert('Failed to create subtask: ' + (err.message || 'Unknown error'));
@@ -132,6 +138,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     setShowSubtaskForm(false);
     setSubtaskTitle('');
     setSubtaskDescription('');
+    setSubtaskPriority('medium');
   };
 
   /**
@@ -208,6 +215,16 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               rows="3"
               disabled={isUpdating}
             />
+            <select
+              className="edit-priority-select"
+              value={editPriority}
+              onChange={(e) => setEditPriority(e.target.value)}
+              disabled={isUpdating}
+            >
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+            </select>
             <div className="edit-buttons">
               <button
                 type="button"
@@ -262,7 +279,12 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
 
         {/* Todo text */}
         <div className="todo-text" onClick={() => setIsEditing(true)}>
-          <div className="todo-title">{todo.title}</div>
+          <div className="todo-title-row">
+            <span className="todo-title">{todo.title}</span>
+            <span className={`priority-badge priority-${todo.priority || 'medium'}`}>
+              {(todo.priority || 'medium').toUpperCase()}
+            </span>
+          </div>
           {todo.description && (
             <div className="todo-description">{todo.description}</div>
           )}
@@ -341,6 +363,16 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               disabled={subtaskLoading}
               rows="2"
             />
+            <select
+              className="child-priority-select"
+              value={subtaskPriority}
+              onChange={(e) => setSubtaskPriority(e.target.value)}
+              disabled={subtaskLoading}
+            >
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+            </select>
             <div className="add-child-buttons">
               <button
                 type="submit"

@@ -1,3 +1,7 @@
 .env
 server/__pycache__/
 server/instance/
+
+.claude/
+
+.notebook/

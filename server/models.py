@@ -103,6 +103,7 @@ class TodoItem(db.Model):
     completed = db.Column(db.Boolean, default=False, nullable=False)
     collapsed = db.Column(db.Boolean, default=False, nullable=False)
     depth = db.Column(db.Integer, default=0, nullable=False)
+    priority = db.Column(db.String(10), default='medium', nullable=False)
 
     # Foreign keys
     parent_id = db.Column(db.Integer, db.ForeignKey('todo_items.id'), index=True)
@@ -131,6 +132,7 @@ class TodoItem(db.Model):
             'completed': self.completed,
             'collapsed': self.collapsed,
             'depth': self.depth,
+            'priority': self.priority,
             'parent_id': self.parent_id,
             'list_id': self.list_id,
             'user_id': self.user_id,
