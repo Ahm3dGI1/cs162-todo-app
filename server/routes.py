@@ -378,7 +378,17 @@ def update_todo(todo_id):
             todo.description = data['description'].strip()
 
         if 'completed' in data:
-            todo.completed = bool(data['completed'])
+            new_completed_state = bool(data['completed'])
+            todo.completed = new_completed_state
+
+            # If marking as complete, mark all children as complete too (cascade)
+            if new_completed_state:
+                def mark_children_complete(parent_todo):
+                    for child in parent_todo.children:
+                        child.completed = True
+                        mark_children_complete(child)  # Recursive
+
+                mark_children_complete(todo)
 
         if 'collapsed' in data:
             todo.collapsed = bool(data['collapsed'])
@@ -387,7 +397,7 @@ def update_todo(todo_id):
 
         return jsonify({
             'message': 'Todo updated successfully',
-            'todo': todo.to_dict()
+            'todo': todo.to_dict(include_children=True)
         }), 200
 
     except Exception as e:

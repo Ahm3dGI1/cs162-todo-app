@@ -227,26 +227,83 @@ function App() {
   };
 
   /**
-   * Update a todo
+   * Update a todo with optimistic UI updates
    */
   const handleUpdateTodo = async (todoId, updates) => {
-    const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify(updates)
-    });
+    // Optimistic update - update UI immediately
+    const applyOptimisticUpdate = (todosList) => {
+      return todosList.map(todo => {
+        if (todo.id === todoId) {
+          // Apply updates optimistically
+          const optimisticTodo = { ...todo, ...updates };
 
-    if (response.ok) {
-      // Refetch to maintain hierarchical structure
-      if (selectedProject) {
+          // If completing, cascade to children optimistically
+          if (updates.completed === true && todo.children) {
+            const markChildrenComplete = (children) => {
+              return children.map(child => ({
+                ...child,
+                completed: true,
+                children: child.children ? markChildrenComplete(child.children) : []
+              }));
+            };
+            optimisticTodo.children = markChildrenComplete(todo.children);
+          }
+
+          return optimisticTodo;
+        } else if (todo.children && todo.children.length > 0) {
+          return {
+            ...todo,
+            children: applyOptimisticUpdate(todo.children)
+          };
+        }
+        return todo;
+      });
+    };
+
+    // Update UI immediately
+    setTodos(applyOptimisticUpdate(todos));
+
+    try {
+      // Then sync with backend
+      const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedTodo = data.todo;
+
+        // Update with authoritative server response
+        const updateTodoInTree = (todosList) => {
+          return todosList.map(todo => {
+            if (todo.id === updatedTodo.id) {
+              return updatedTodo;
+            } else if (todo.children && todo.children.length > 0) {
+              return {
+                ...todo,
+                children: updateTodoInTree(todo.children)
+              };
+            }
+            return todo;
+          });
+        };
+
+        setTodos(updateTodoInTree(todos));
+      } else {
+        // Revert optimistic update on error
         await fetchTodos(selectedProject.id);
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update todo');
       }
-    } else {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update todo');
+    } catch (err) {
+      // Revert on network error
+      await fetchTodos(selectedProject.id);
+      throw err;
     }
   };
 
