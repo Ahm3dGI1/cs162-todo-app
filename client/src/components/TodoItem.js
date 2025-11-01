@@ -43,9 +43,14 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   /**
    * Handle checkbox toggle
    */
-  const handleToggleComplete = () => {
-    // Will be implemented in later PR
-    console.log('Checkbox toggled (not functional yet)');
+  const handleToggleComplete = async () => {
+    try {
+      await onUpdate(todo.id, {
+        completed: !todo.completed
+      });
+    } catch (err) {
+      alert('Failed to toggle completion: ' + (err.message || 'Unknown error'));
+    }
   };
 
   /**
@@ -181,13 +186,13 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
           <div className="collapse-spacer"></div>
         )}
 
-        {/* Checkbox (not functional yet) */}
+        {/* Checkbox */}
         <input
           type="checkbox"
           className="todo-checkbox"
-          checked={false}
+          checked={todo.completed}
           onChange={handleToggleComplete}
-          title="Checkbox (not functional yet)"
+          title={todo.completed ? 'Mark as incomplete' : 'Mark as complete'}
         />
 
         {/* Todo text */}

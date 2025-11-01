@@ -7,7 +7,7 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 
 # ============================================================================
-# PROJECT ROUTES (PR-4)
+# PROJECT ROUTES
 # ============================================================================
 
 @api_bp.route('/projects', methods=['GET'])
