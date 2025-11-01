@@ -328,6 +328,30 @@ function App() {
   };
 
   /**
+   * Move a todo to another project
+   */
+  const handleMoveTodo = async (todoId, targetProjectId) => {
+    const response = await fetch(`${API_ENDPOINTS.TODOS}/${todoId}/move`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({ target_project_id: targetProjectId })
+    });
+
+    if (response.ok) {
+      // Refetch current project's todos after move
+      if (selectedProject) {
+        await fetchTodos(selectedProject.id);
+      }
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to move todo');
+    }
+  };
+
+  /**
    * Load projects when user logs in
    */
   useEffect(() => {
@@ -451,6 +475,8 @@ function App() {
                 onCreateTodo={handleCreateTodo}
                 onUpdateTodo={handleUpdateTodo}
                 onDeleteTodo={handleDeleteTodo}
+                onMoveTodo={handleMoveTodo}
+                availableProjects={projects}
               />
             ) : null}
           </div>

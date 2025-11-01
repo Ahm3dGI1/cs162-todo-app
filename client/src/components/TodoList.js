@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import TodoItem from './TodoItem';
 
-function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo }) {
+function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMoveTodo, availableProjects }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [newTodoDescription, setNewTodoDescription] = useState('');
@@ -126,6 +126,9 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo }) {
               onUpdate={onUpdateTodo}
               onDelete={onDeleteTodo}
               onCreateSubtask={onCreateTodo}
+              onMove={onMoveTodo}
+              availableProjects={availableProjects}
+              currentProjectId={list.id}
             />
           ))
         )}

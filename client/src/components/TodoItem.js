@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
+function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, availableProjects, currentProjectId }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description || '');
@@ -11,6 +11,14 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
   const [subtaskDescription, setSubtaskDescription] = useState('');
   const [subtaskLoading, setSubtaskLoading] = useState(false);
 
+  //  Loading states for operations
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  //  Move task state
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+
   /**
    * Handle save edit
    */
@@ -20,6 +28,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
       return;
     }
 
+    setIsUpdating(true);
     try {
       await onUpdate(todo.id, {
         title: editTitle.trim(),
@@ -28,6 +37,8 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
       setIsEditing(false);
     } catch (err) {
       alert('Failed to update todo: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -58,14 +69,16 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
    */
   const handleDelete = async () => {
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${todo.title}"?`
+      `Are you sure you want to delete "${todo.title}"?${todo.children && todo.children.length > 0 ? '\n\nThis will also delete all subtasks.' : ''}`
     );
 
     if (confirmDelete) {
+      setIsDeleting(true);
       try {
         await onDelete(todo.id);
       } catch (err) {
         alert('Failed to delete todo: ' + (err.message || 'Unknown error'));
+        setIsDeleting(false);
       }
     }
   };
@@ -110,8 +123,41 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
     setSubtaskDescription('');
   };
 
+  /**
+   * Handle move to another project
+   */
+  const handleMoveToProject = async (targetProjectId) => {
+    setIsMoving(true);
+    try {
+      await onMove(todo.id, targetProjectId);
+      setShowMoveDialog(false);
+    } catch (err) {
+      alert('Failed to move task: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   //  Check if max depth reached
   const canAddSubtask = todo.depth < 2;
+
+  //  Only top-level tasks can be moved
+  const canMove = todo.depth === 0 && availableProjects && availableProjects.length > 1;
+
+  /**
+   * Handle keyboard shortcuts in edit mode
+   */
+  const handleEditKeyDown = (e) => {
+    // Escape to cancel
+    if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+    // Ctrl+Enter or Cmd+Enter to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+  };
 
   /**
    * Handle toggle collapse
@@ -128,7 +174,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
 
   if (isEditing) {
     return (
-      <div className={`todo-item depth-${todo.depth}`}>
+      <div className={`todo-item depth-${todo.depth} editing`}>
         <div className="todo-content">
           <div className="todo-edit-form">
             <input
@@ -136,33 +182,41 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
               className="edit-title-input"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={handleEditKeyDown}
               placeholder="Todo title"
               autoFocus
               maxLength="500"
+              disabled={isUpdating}
             />
             <textarea
               className="edit-description-input"
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
+              onKeyDown={handleEditKeyDown}
               placeholder="Description (optional)"
               rows="3"
+              disabled={isUpdating}
             />
             <div className="edit-buttons">
               <button
                 type="button"
                 className="save-button"
                 onClick={handleSaveEdit}
-                disabled={!editTitle.trim()}
+                disabled={!editTitle.trim() || isUpdating}
               >
-                Save
+                {isUpdating ? 'Saving...' : 'Save'}
               </button>
               <button
                 type="button"
                 className="cancel-button"
                 onClick={handleCancelEdit}
+                disabled={isUpdating}
               >
                 Cancel
               </button>
+            </div>
+            <div className="keyboard-hints">
+              Press <kbd>Esc</kbd> to cancel, <kbd>Ctrl+Enter</kbd> to save
             </div>
           </div>
         </div>
@@ -211,6 +265,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
               className="action-button"
               onClick={() => setShowSubtaskForm(!showSubtaskForm)}
               title="Add subtask"
+              disabled={isDeleting}
             >
               ➕
             </button>
@@ -223,10 +278,22 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
               🚫
             </button>
           )}
+          {/*  Move button (only for top-level tasks) */}
+          {canMove && (
+            <button
+              className="action-button"
+              onClick={() => setShowMoveDialog(!showMoveDialog)}
+              title="Move to another project"
+              disabled={isDeleting || isMoving}
+            >
+              📁
+            </button>
+          )}
           <button
             className="action-button"
             onClick={() => setIsEditing(true)}
             title="Edit todo"
+            disabled={isDeleting}
           >
             ✏️
           </button>
@@ -234,8 +301,9 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
             className="action-button delete"
             onClick={handleDelete}
             title="Delete todo"
+            disabled={isDeleting}
           >
-            🗑️
+            {isDeleting ? '⏳' : '🗑️'}
           </button>
         </div>
       </div>
@@ -283,6 +351,38 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
         </div>
       )}
 
+      {/*  Move task dialog */}
+      {showMoveDialog && (
+        <div className="move-dialog">
+          <div className="move-dialog-header">
+            Move to Project
+          </div>
+          <div className="move-dialog-content">
+            {availableProjects
+              .filter(project => project.id !== currentProjectId)
+              .map(project => (
+                <button
+                  key={project.id}
+                  className="move-option"
+                  onClick={() => handleMoveToProject(project.id)}
+                  disabled={isMoving}
+                >
+                  📋 {project.name}
+                </button>
+              ))}
+          </div>
+          <div className="move-dialog-footer">
+            <button
+              className="cancel-button"
+              onClick={() => setShowMoveDialog(false)}
+              disabled={isMoving}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/*  Recursive rendering of children (only if not collapsed) */}
       {todo.children && todo.children.length > 0 && !todo.collapsed && (
         <div className="todo-children">
@@ -294,6 +394,9 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask }) {
               onUpdate={onUpdate}
               onDelete={onDelete}
               onCreateSubtask={onCreateSubtask}
+              onMove={onMove}
+              availableProjects={availableProjects}
+              currentProjectId={currentProjectId}
             />
           ))}
         </div>

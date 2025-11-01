@@ -444,3 +444,83 @@ def delete_todo(todo_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to delete todo: {str(e)}'}), 500
+
+
+@api_bp.route('/todos/<int:todo_id>/move', methods=['POST'])
+@login_required
+def move_todo(todo_id):
+    """
+    Move a todo item to a different project.
+
+    Expected JSON body:
+        {
+            "target_project_id": integer
+        }
+
+    Args:
+        todo_id: ID of the todo to move
+
+    Returns:
+        200: Todo moved successfully
+        400: Validation error
+        401: Not authenticated
+        403: Not authorized to move this todo
+        404: Todo or target project not found
+    """
+    user_id = session.get('user_id')
+    data = request.get_json()
+
+    # Validate required fields
+    if not data or not data.get('target_project_id'):
+        return jsonify({'error': 'target_project_id is required'}), 400
+
+    target_project_id = data['target_project_id']
+
+    # Find the todo
+    todo = TodoItem.query.get(todo_id)
+
+    if not todo:
+        return jsonify({'error': 'Todo not found'}), 404
+
+    # Check ownership of todo
+    if todo.user_id != user_id:
+        return jsonify({'error': 'Not authorized to move this todo'}), 403
+
+    # Find the target project
+    target_project = TodoList.query.get(target_project_id)
+
+    if not target_project:
+        return jsonify({'error': 'Target project not found'}), 404
+
+    # Check ownership of target project
+    if target_project.user_id != user_id:
+        return jsonify({'error': 'Not authorized to move to this project'}), 403
+
+    # Cannot move if same project
+    if todo.list_id == target_project_id:
+        return jsonify({'error': 'Todo is already in this project'}), 400
+
+    # Can only move top-level todos (depth 0, no parent)
+    if todo.parent_id is not None:
+        return jsonify({'error': 'Only top-level tasks can be moved between projects. Remove from parent first.'}), 400
+
+    try:
+        # Recursive function to update list_id for todo and all children
+        def update_list_id_recursive(todo_item, new_list_id):
+            todo_item.list_id = new_list_id
+            for child in todo_item.children:
+                update_list_id_recursive(child, new_list_id)
+
+        # Move the todo and all its children
+        update_list_id_recursive(todo, target_project_id)
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Todo moved successfully',
+            'todo': todo.to_dict(include_children=True)
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to move todo: {str(e)}'}), 500

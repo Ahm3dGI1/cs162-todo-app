@@ -643,6 +643,12 @@ body {
   transition: all 0.3s ease;
 }
 
+.todo-item.editing {
+  border-color: #6366F1;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+  transform: scale(1.01);
+}
+
 .todo-item:hover {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   border-color: #CBD5E1;
@@ -777,6 +783,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .edit-title-input,
@@ -844,8 +862,86 @@ body {
   transition: all 0.2s;
 }
 
-.cancel-button:hover {
+.cancel-button:hover:not(:disabled) {
   background: #E2E8F0;
+}
+
+.cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Keyboard hints */
+.keyboard-hints {
+  font-size: 12px;
+  color: #94A3B8;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.keyboard-hints kbd {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #475569;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Move Dialog */
+.move-dialog {
+  padding: 18px;
+  padding-top: 0;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border-radius: 10px;
+  margin: 12px 18px;
+  animation: slideDown 0.2s ease;
+  border: 2px solid #E2E8F0;
+}
+
+.move-dialog-header {
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.move-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.move-option {
+  padding: 12px 16px;
+  background: white;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  transition: all 0.2s;
+  font-weight: 500;
+  color: #475569;
+}
+
+.move-option:hover:not(:disabled) {
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+  border-color: #6366F1;
+  transform: translateX(4px);
+}
+
+.move-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.move-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Subtask Form */
@@ -855,6 +951,22 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    padding-top: 0;
+    padding-bottom: 18px;
+  }
 }
 
 .child-input {
