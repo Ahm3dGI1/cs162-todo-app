@@ -1,4 +1,15 @@
 import React, { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faChevronRight,
+  faChevronDown,
+  faPlus,
+  faBan,
+  faFolder,
+  faPenToSquare,
+  faTrash,
+  faSpinner
+} from '@fortawesome/free-solid-svg-icons';
 
 function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, availableProjects, currentProjectId }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -234,7 +245,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
             onClick={handleToggleCollapse}
             title={todo.collapsed ? 'Expand' : 'Collapse'}
           >
-            {todo.collapsed ? '▶' : '▼'}
+            <FontAwesomeIcon icon={todo.collapsed ? faChevronRight : faChevronDown} />
           </button>
         ) : (
           <div className="collapse-spacer"></div>
@@ -267,7 +278,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               title="Add subtask"
               disabled={isDeleting}
             >
-              ➕
+              <FontAwesomeIcon icon={faPlus} />
             </button>
           ) : (
             <button
@@ -275,7 +286,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               disabled
               title="Maximum depth reached (3 levels)"
             >
-              🚫
+              <FontAwesomeIcon icon={faBan} />
             </button>
           )}
           {/*  Move button (only for top-level tasks) */}
@@ -286,7 +297,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               title="Move to another project"
               disabled={isDeleting || isMoving}
             >
-              📁
+              <FontAwesomeIcon icon={faFolder} />
             </button>
           )}
           <button
@@ -295,7 +306,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
             title="Edit todo"
             disabled={isDeleting}
           >
-            ✏️
+            <FontAwesomeIcon icon={faPenToSquare} />
           </button>
           <button
             className="action-button delete"
@@ -303,7 +314,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
             title="Delete todo"
             disabled={isDeleting}
           >
-            {isDeleting ? '⏳' : '🗑️'}
+            {isDeleting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrash} />}
           </button>
         </div>
       </div>

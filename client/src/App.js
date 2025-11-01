@@ -6,6 +6,8 @@ import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import TodoList from './components/TodoList';
 import { API_ENDPOINTS } from './config/api';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClipboardCheck } from '@fortawesome/free-solid-svg-icons';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -389,7 +391,7 @@ function App() {
     return (
       <div className="App">
         <div className="auth-container">
-          <h1>📝 Hierarchical Todo List</h1>
+          <h1><FontAwesomeIcon icon={faClipboardCheck} /> Hierarchical Todo List</h1>
           
           {showRegister ? (
             <>
@@ -461,6 +463,8 @@ function App() {
               onSelectProject={handleSelectProject}
               onCreateProject={handleCreateProject}
               onDeleteProject={handleDeleteProject}
+              user={user}
+              onLogout={handleLogout}
             />
           )
         ) : (

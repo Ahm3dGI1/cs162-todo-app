@@ -143,19 +143,70 @@ def logout():
 def get_current_user():
     """
     Get the currently logged-in user's information.
-    
+
     Returns:
         200: User data if logged in
         401: Not authenticated
     """
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
-    
+
     user = User.query.get(session['user_id'])
-    
+
     if not user:
         # User was deleted but session still exists
         session.clear()
         return jsonify({'error': 'User not found'}), 401
-    
+
     return jsonify({'user': user.to_dict()}), 200
+
+
+@auth_bp.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """
+    Change the current user's password.
+
+    Expected JSON body:
+        {
+            "current_password": "string",
+            "new_password": "string"
+        }
+
+    Returns:
+        200: Password changed successfully
+        400: Validation error
+        401: Current password incorrect
+    """
+    data = request.get_json()
+
+    if not data or not data.get('current_password') or not data.get('new_password'):
+        return jsonify({'error': 'Current password and new password are required'}), 400
+
+    current_password = data['current_password']
+    new_password = data['new_password']
+
+    # Validate new password length
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters long'}), 400
+
+    # Get current user
+    user = User.query.get(session['user_id'])
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    # Verify current password
+    if not user.check_password(current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+
+    # Set new password
+    try:
+        user.set_password(new_password)
+        db.session.commit()
+
+        return jsonify({'message': 'Password changed successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to change password: {str(e)}'}), 500

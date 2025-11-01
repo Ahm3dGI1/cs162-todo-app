@@ -1,4 +1,6 @@
 import React from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark, faTableCells, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 
 function Sidebar({ isOpen, onClose, currentProject, onBackToDashboard, user, onLogout }) {
   return (
@@ -10,7 +12,7 @@ function Sidebar({ isOpen, onClose, currentProject, onBackToDashboard, user, onL
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <button className="close-sidebar-btn" onClick={onClose}>
-            ✕
+            <FontAwesomeIcon icon={faXmark} />
           </button>
         </div>
 
@@ -35,14 +37,14 @@ function Sidebar({ isOpen, onClose, currentProject, onBackToDashboard, user, onL
             )}
 
             <button className="sidebar-nav-btn" onClick={onBackToDashboard}>
-              <span className="nav-icon">📊</span>
+              <span className="nav-icon"><FontAwesomeIcon icon={faTableCells} /></span>
               <span>All Projects</span>
             </button>
 
             <div className="sidebar-divider"></div>
 
             <button className="sidebar-nav-btn logout-btn" onClick={onLogout}>
-              <span className="nav-icon">🚪</span>
+              <span className="nav-icon"><FontAwesomeIcon icon={faRightFromBracket} /></span>
               <span>Logout</span>
             </button>
           </nav>
