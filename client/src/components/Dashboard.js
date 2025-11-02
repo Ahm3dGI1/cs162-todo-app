@@ -23,8 +23,6 @@ function Dashboard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState(currentSection);
-
-  // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -33,9 +31,6 @@ function Dashboard({
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  /**
-   * Handle create project form submission
-   */
   const handleCreateProject = async (e) => {
     e.preventDefault();
     setError('');
@@ -60,18 +55,12 @@ function Dashboard({
     }
   };
 
-  /**
-   * Handle cancel create
-   */
   const handleCancelCreate = () => {
     setShowCreateForm(false);
     setProjectName('');
     setError('');
   };
 
-  /**
-   * Handle delete project with confirmation
-   */
   const handleDeleteProject = async (projectId, projectName) => {
     const confirmDelete = window.confirm(
       `Are you sure you want to delete "${projectName}" and all its tasks?`

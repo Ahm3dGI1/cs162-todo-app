@@ -11,9 +11,6 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  /**
-   * Handle create todo form submission
-   */
   const handleCreateTodo = async (e) => {
     e.preventDefault();
     setError('');
@@ -35,7 +32,6 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
         priority: newTodoPriority
       });
 
-      // Reset form
       setNewTodoTitle('');
       setNewTodoDescription('');
       setNewTodoPriority('medium');
@@ -47,9 +43,6 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
     }
   };
 
-  /**
-   * Handle cancel create
-   */
   const handleCancelCreate = () => {
     setShowCreateForm(false);
     setNewTodoTitle('');
@@ -60,7 +53,6 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
 
   return (
     <div className="todo-list-container">
-      {/* Page Header */}
       <div className="project-page-header">
         <div className="project-header-left">
           <button
@@ -85,10 +77,7 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="todo-list-content">
-
-        {/* Create Todo Form */}
         {showCreateForm && (
           <div className="create-task-card">
             {error && <div className="error-message">{error}</div>}

@@ -9,55 +9,28 @@ import {
   faFolder,
   faPenToSquare,
   faTrash,
-  faSpinner,
-  faGripVertical
+  faSpinner
 } from '@fortawesome/free-solid-svg-icons';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { API_ENDPOINTS } from '../config/api';
 
 function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, availableProjects, currentProjectId }) {
   const navigate = useNavigate();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: todo.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description || '');
   const [editPriority, setEditPriority] = useState(todo.priority || 'medium');
-
-  //  Add subtask form state
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskDescription, setSubtaskDescription] = useState('');
   const [subtaskPriority, setSubtaskPriority] = useState('medium');
   const [subtaskLoading, setSubtaskLoading] = useState(false);
-
-  //  Loading states for operations
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  //  Move task state
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [moveTargetProject, setMoveTargetProject] = useState(null);
   const [moveTargetParent, setMoveTargetParent] = useState(null);
   const [availableTasks, setAvailableTasks] = useState([]);
-
-  /**
-   * Handle save edit
-   */
   const handleSaveEdit = async () => {
     if (!editTitle.trim()) {
       alert('Title cannot be empty');
@@ -79,9 +52,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     }
   };
 
-  /**
-   * Handle cancel edit
-   */
   const handleCancelEdit = () => {
     setEditTitle(todo.title);
     setEditDescription(todo.description || '');
@@ -89,9 +59,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     setIsEditing(false);
   };
 
-  /**
-   * Handle checkbox toggle
-   */
   const handleToggleComplete = async () => {
     try {
       await onUpdate(todo.id, {
@@ -102,9 +69,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     }
   };
 
-  /**
-   * Handle delete with confirmation
-   */
   const handleDelete = async () => {
     const confirmDelete = window.confirm(
       `Are you sure you want to delete "${todo.title}"?${todo.children && todo.children.length > 0 ? '\n\nThis will also delete all subtasks.' : ''}`
@@ -121,9 +85,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     }
   };
 
-  /**
-   *  Handle create subtask
-   */
   const handleCreateSubtask = async (e) => {
     e.preventDefault();
 
@@ -154,9 +115,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     }
   };
 
-  /**
-   *  Cancel subtask form
-   */
   const handleCancelSubtask = () => {
     setShowSubtaskForm(false);
     setSubtaskTitle('');
@@ -164,13 +122,9 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     setSubtaskPriority('medium');
   };
 
-  /**
-   * Handle move task with reparenting support
-   */
   const handleMoveTask = async (targetProjectId, targetParentId) => {
     setIsMoving(true);
     try {
-      // Use the reparent endpoint for advanced move functionality
       const response = await fetch(`${API_ENDPOINTS.TODOS}/${todo.id}/reparent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -187,12 +141,9 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
         throw new Error(error.error || 'Failed to move task');
       }
 
-      // Navigate to the target project to see the updated task
-      // If moving to a different project, navigate there; otherwise stay on current page and refresh
       if (targetProjectId !== currentProjectId) {
         navigate(`/project/${targetProjectId}`);
       } else {
-        // Same project - just reload to refresh the task list
         window.location.reload();
       }
     } catch (err) {
@@ -203,9 +154,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     }
   };
 
-  /**
-   * Fetch available tasks for the target project
-   */
   const fetchAvailableTasksForProject = async (projectId) => {
     try {
       const response = await fetch(`${API_ENDPOINTS.TODOS}/${projectId}`, {
@@ -214,10 +162,8 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
 
       if (response.ok) {
         const data = await response.json();
-        // Flatten the hierarchical structure to get all tasks
         const flattenTasks = (tasks) => {
           return tasks.reduce((acc, task) => {
-            // Exclude the current task and its descendants
             if (task.id !== todo.id && !isDescendant(task, todo.id)) {
               acc.push(task);
               if (task.children) {
@@ -235,9 +181,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     }
   };
 
-  /**
-   * Check if a task is a descendant of another
-   */
   const isDescendant = (task, ancestorId) => {
     if (task.id === ancestorId) return true;
     if (task.children) {
@@ -246,9 +189,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     return false;
   };
 
-  /**
-   * Handle opening move dialog
-   */
   const handleOpenMoveDialog = () => {
     setShowMoveDialog(true);
     setMoveTargetProject(currentProjectId);
@@ -256,39 +196,25 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
     fetchAvailableTasksForProject(currentProjectId);
   };
 
-  /**
-   * Handle changing target project in move dialog
-   */
   const handleChangeTargetProject = (projectId) => {
     setMoveTargetProject(projectId);
     setMoveTargetParent(null);
     fetchAvailableTasksForProject(projectId);
   };
 
-  //  Check if max depth reached
   const canAddSubtask = todo.depth < 2;
-
-  //  All tasks can be moved now
   const canMove = availableProjects && availableProjects.length > 0;
 
-  /**
-   * Handle keyboard shortcuts in edit mode
-   */
   const handleEditKeyDown = (e) => {
-    // Escape to cancel
     if (e.key === 'Escape') {
       handleCancelEdit();
     }
-    // Ctrl+Enter or Cmd+Enter to save
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       handleSaveEdit();
     }
   };
 
-  /**
-   * Handle toggle collapse
-   */
   const handleToggleCollapse = async () => {
     try {
       await onUpdate(todo.id, {
@@ -364,7 +290,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
   return (
     <div className={`todo-item depth-${todo.depth}`}>
       <div className={`todo-content ${todo.completed ? 'completed' : ''}`}>
-        {/* Collapse/Expand button (only if has children) */}
         {todo.children && todo.children.length > 0 ? (
           <button
             className="collapse-button"
@@ -377,7 +302,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
           <div className="collapse-spacer"></div>
         )}
 
-        {/* Checkbox */}
         <input
           type="checkbox"
           className="todo-checkbox"
@@ -386,7 +310,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
           title={todo.completed ? 'Mark as incomplete' : 'Mark as complete'}
         />
 
-        {/* Todo text */}
         <div className="todo-text" onClick={() => setIsEditing(true)}>
           <div className="todo-title-row">
             <span className="todo-title">{todo.title}</span>
@@ -399,9 +322,7 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
           )}
         </div>
 
-        {/* Action buttons */}
         <div className="todo-actions">
-          {/*  Add Subtask button */}
           {canAddSubtask ? (
             <button
               className="action-button"
@@ -420,7 +341,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               <FontAwesomeIcon icon={faBan} />
             </button>
           )}
-          {/*  Move button (all tasks can be moved) */}
           {canMove && (
             <button
               className="action-button"
@@ -450,7 +370,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
         </div>
       </div>
 
-      {/*  Subtask creation form */}
       {showSubtaskForm && (
         <div className="add-child-form">
           <form onSubmit={handleCreateSubtask}>
@@ -503,7 +422,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
         </div>
       )}
 
-      {/*  Enhanced Move task dialog */}
       {showMoveDialog && (
         <div className="move-dialog-overlay" onClick={() => setShowMoveDialog(false)}>
           <div className="move-dialog-enhanced" onClick={(e) => e.stopPropagation()}>
@@ -513,7 +431,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
             </div>
 
             <div className="move-dialog-body">
-              {/* Step 1: Select Target Project */}
               <div className="move-step">
                 <label className="move-label">Target Project:</label>
                 <select
@@ -530,7 +447,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
                 </select>
               </div>
 
-              {/* Step 2: Select Parent Task or Top-Level */}
               <div className="move-step">
                 <label className="move-label">Position:</label>
                 <div className="move-options">
@@ -584,7 +500,6 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
         </div>
       )}
 
-      {/*  Recursive rendering of children (only if not collapsed) */}
       {todo.children && todo.children.length > 0 && !todo.collapsed && (
         <div className="todo-children">
           {todo.children.map((child) => (
