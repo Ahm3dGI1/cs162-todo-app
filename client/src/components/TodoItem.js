@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronRight,
@@ -8,10 +9,29 @@ import {
   faFolder,
   faPenToSquare,
   faTrash,
-  faSpinner
+  faSpinner,
+  faGripVertical
 } from '@fortawesome/free-solid-svg-icons';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { API_ENDPOINTS } from '../config/api';
 
 function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, availableProjects, currentProjectId }) {
+  const navigate = useNavigate();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description || '');
@@ -31,6 +51,9 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
   //  Move task state
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [moveTargetProject, setMoveTargetProject] = useState(null);
+  const [moveTargetParent, setMoveTargetParent] = useState(null);
+  const [availableTasks, setAvailableTasks] = useState([]);
 
   /**
    * Handle save edit
@@ -142,25 +165,111 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
   };
 
   /**
-   * Handle move to another project
+   * Handle move task with reparenting support
    */
-  const handleMoveToProject = async (targetProjectId) => {
+  const handleMoveTask = async (targetProjectId, targetParentId) => {
     setIsMoving(true);
     try {
-      await onMove(todo.id, targetProjectId);
-      setShowMoveDialog(false);
+      // Use the reparent endpoint for advanced move functionality
+      const response = await fetch(`${API_ENDPOINTS.TODOS}/${todo.id}/reparent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          new_parent_id: targetParentId,
+          new_project_id: targetProjectId,
+          new_order: 0
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to move task');
+      }
+
+      // Navigate to the target project to see the updated task
+      // If moving to a different project, navigate there; otherwise stay on current page and refresh
+      if (targetProjectId !== currentProjectId) {
+        navigate(`/project/${targetProjectId}`);
+      } else {
+        // Same project - just reload to refresh the task list
+        window.location.reload();
+      }
     } catch (err) {
       alert('Failed to move task: ' + (err.message || 'Unknown error'));
     } finally {
       setIsMoving(false);
+      setShowMoveDialog(false);
     }
+  };
+
+  /**
+   * Fetch available tasks for the target project
+   */
+  const fetchAvailableTasksForProject = async (projectId) => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.TODOS}/${projectId}`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Flatten the hierarchical structure to get all tasks
+        const flattenTasks = (tasks) => {
+          return tasks.reduce((acc, task) => {
+            // Exclude the current task and its descendants
+            if (task.id !== todo.id && !isDescendant(task, todo.id)) {
+              acc.push(task);
+              if (task.children) {
+                acc.push(...flattenTasks(task.children));
+              }
+            }
+            return acc;
+          }, []);
+        };
+        setAvailableTasks(flattenTasks(data.todos || []));
+      }
+    } catch (err) {
+      console.error('Failed to fetch tasks:', err);
+      alert('Failed to load available tasks. Please try again.');
+    }
+  };
+
+  /**
+   * Check if a task is a descendant of another
+   */
+  const isDescendant = (task, ancestorId) => {
+    if (task.id === ancestorId) return true;
+    if (task.children) {
+      return task.children.some(child => isDescendant(child, ancestorId));
+    }
+    return false;
+  };
+
+  /**
+   * Handle opening move dialog
+   */
+  const handleOpenMoveDialog = () => {
+    setShowMoveDialog(true);
+    setMoveTargetProject(currentProjectId);
+    setMoveTargetParent(null);
+    fetchAvailableTasksForProject(currentProjectId);
+  };
+
+  /**
+   * Handle changing target project in move dialog
+   */
+  const handleChangeTargetProject = (projectId) => {
+    setMoveTargetProject(projectId);
+    setMoveTargetParent(null);
+    fetchAvailableTasksForProject(projectId);
   };
 
   //  Check if max depth reached
   const canAddSubtask = todo.depth < 2;
 
-  //  Only top-level tasks can be moved
-  const canMove = todo.depth === 0 && availableProjects && availableProjects.length > 1;
+  //  All tasks can be moved now
+  const canMove = availableProjects && availableProjects.length > 0;
 
   /**
    * Handle keyboard shortcuts in edit mode
@@ -311,12 +420,12 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
               <FontAwesomeIcon icon={faBan} />
             </button>
           )}
-          {/*  Move button (only for top-level tasks) */}
+          {/*  Move button (all tasks can be moved) */}
           {canMove && (
             <button
               className="action-button"
-              onClick={() => setShowMoveDialog(!showMoveDialog)}
-              title="Move to another project"
+              onClick={handleOpenMoveDialog}
+              title="Move task"
               disabled={isDeleting || isMoving}
             >
               <FontAwesomeIcon icon={faFolder} />
@@ -394,34 +503,83 @@ function TodoItem({ todo, listId, onUpdate, onDelete, onCreateSubtask, onMove, a
         </div>
       )}
 
-      {/*  Move task dialog */}
+      {/*  Enhanced Move task dialog */}
       {showMoveDialog && (
-        <div className="move-dialog">
-          <div className="move-dialog-header">
-            Move to Project
-          </div>
-          <div className="move-dialog-content">
-            {availableProjects
-              .filter(project => project.id !== currentProjectId)
-              .map(project => (
-                <button
-                  key={project.id}
-                  className="move-option"
-                  onClick={() => handleMoveToProject(project.id)}
+        <div className="move-dialog-overlay" onClick={() => setShowMoveDialog(false)}>
+          <div className="move-dialog-enhanced" onClick={(e) => e.stopPropagation()}>
+            <div className="move-dialog-header">
+              <h3>Move Task</h3>
+              <button className="close-button" onClick={() => setShowMoveDialog(false)}>×</button>
+            </div>
+
+            <div className="move-dialog-body">
+              {/* Step 1: Select Target Project */}
+              <div className="move-step">
+                <label className="move-label">Target Project:</label>
+                <select
+                  className="move-select"
+                  value={moveTargetProject || ''}
+                  onChange={(e) => handleChangeTargetProject(parseInt(e.target.value))}
                   disabled={isMoving}
                 >
-                  📋 {project.name}
-                </button>
-              ))}
-          </div>
-          <div className="move-dialog-footer">
-            <button
-              className="cancel-button"
-              onClick={() => setShowMoveDialog(false)}
-              disabled={isMoving}
-            >
-              Cancel
-            </button>
+                  {availableProjects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name} {project.id === currentProjectId ? '(Current)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Step 2: Select Parent Task or Top-Level */}
+              <div className="move-step">
+                <label className="move-label">Position:</label>
+                <div className="move-options">
+                  <button
+                    className={`move-option ${moveTargetParent === null ? 'selected' : ''}`}
+                    onClick={() => setMoveTargetParent(null)}
+                    disabled={isMoving}
+                  >
+                    <FontAwesomeIcon icon={faFolder} /> Top-level task
+                  </button>
+
+                  {availableTasks.length > 0 && (
+                    <div className="move-parent-list">
+                      <p className="move-subheading">Or make it a subtask of:</p>
+                      {availableTasks.map(task => (
+                        <button
+                          key={task.id}
+                          className={`move-option task-option ${moveTargetParent === task.id ? 'selected' : ''}`}
+                          onClick={() => setMoveTargetParent(task.id)}
+                          disabled={isMoving || task.depth >= 2}
+                          title={task.depth >= 2 ? 'Cannot nest more than 3 levels deep' : `Make subtask of: ${task.title}`}
+                        >
+                          <span className="task-depth-indicator">{'  '.repeat(task.depth)}└─</span>
+                          {task.title}
+                          {task.depth >= 2 && <span className="depth-warning"> (Max depth)</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="move-dialog-footer">
+              <button
+                className="cancel-button"
+                onClick={() => setShowMoveDialog(false)}
+                disabled={isMoving}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-button"
+                onClick={() => handleMoveTask(moveTargetProject, moveTargetParent)}
+                disabled={isMoving}
+              >
+                {isMoving ? 'Moving...' : 'Move Task'}
+              </button>
+            </div>
           </div>
         </div>
       )}

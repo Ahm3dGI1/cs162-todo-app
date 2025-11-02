@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import TodoItem from './TodoItem';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faArrowLeft, faBars } from '@fortawesome/free-solid-svg-icons';
 
 function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMoveTodo, availableProjects, onBack }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -62,19 +62,22 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
     <div className="todo-list-container">
       {/* Page Header */}
       <div className="project-page-header">
-        <div className="project-header-content">
+        <div className="project-header-left">
+          <button className="hamburger-btn" onClick={onBack} title="Back to Dashboard">
+            <FontAwesomeIcon icon={faBars} />
+          </button>
           <h1 className="project-title">{list.name}</h1>
-          <div className="project-header-actions">
-            {!showCreateForm && (
-              <button
-                className="add-task-button"
-                onClick={() => setShowCreateForm(true)}
-                disabled={loading}
-              >
-                <FontAwesomeIcon icon={faPlus} /> Add Task
-              </button>
-            )}
-          </div>
+        </div>
+        <div className="project-header-actions">
+          {!showCreateForm && (
+            <button
+              className="add-task-button"
+              onClick={() => setShowCreateForm(true)}
+              disabled={loading}
+            >
+              <FontAwesomeIcon icon={faPlus} /> Add Task
+            </button>
+          )}
         </div>
       </div>
 

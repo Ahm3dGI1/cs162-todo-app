@@ -36,11 +36,13 @@ def create_app():
     db.init_app(app)
     
     # Configure CORS to allow credentials (cookies/sessions)
-    CORS(app, 
-         origins=['http://localhost:3000'],
-         supports_credentials=True,
-         allow_headers=['Content-Type'],
-         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+    CORS(app,
+         resources={r"/api/*": {
+             "origins": ["http://localhost:3000"],
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type"],
+             "supports_credentials": True
+         }})
     
     # Register blueprints
     app.register_blueprint(auth_bp)

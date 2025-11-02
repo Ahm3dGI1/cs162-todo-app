@@ -567,3 +567,126 @@ def move_todo(todo_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to move todo: {str(e)}'}), 500
+
+
+@api_bp.route('/todos/<int:todo_id>/reparent', methods=['POST'])
+@login_required
+def reparent_todo(todo_id):
+    """
+    Change the parent of a todo (make it a subtask of another todo or move to top-level).
+    Can also move to a different project.
+
+    Expected JSON body:
+        {
+            "new_parent_id": int | null,  # New parent ID (null for top-level)
+            "new_project_id": int | null, # Optional: move to different project
+            "new_order": int              # Position in new location
+        }
+
+    Args:
+        todo_id: ID of the todo to reparent
+
+    Returns:
+        200: Todo reparented successfully
+        400: Validation error
+        401: Not authenticated
+        403: Not authorized
+        404: Todo or parent not found
+    """
+    user_id = session.get('user_id')
+    data = request.get_json()
+
+    # Find the todo
+    todo = TodoItem.query.get(todo_id)
+
+    if not todo:
+        return jsonify({'error': 'Todo not found'}), 404
+
+    # Check ownership
+    if todo.user_id != user_id:
+        return jsonify({'error': 'Not authorized to modify this todo'}), 403
+
+    new_parent_id = data.get('new_parent_id')
+    new_project_id = data.get('new_project_id', todo.list_id)
+    new_order = data.get('new_order', 0)
+
+    # Validate new_parent if provided
+    if new_parent_id is not None:
+        new_parent = TodoItem.query.get(new_parent_id)
+
+        if not new_parent:
+            return jsonify({'error': 'New parent not found'}), 404
+
+        if new_parent.user_id != user_id:
+            return jsonify({'error': 'Not authorized to access new parent'}), 403
+
+        # Prevent circular dependencies
+        def is_descendant(potential_ancestor, potential_descendant):
+            if potential_ancestor.id == potential_descendant.id:
+                return True
+            for child in potential_ancestor.children:
+                if is_descendant(child, potential_descendant):
+                    return True
+            return False
+
+        if is_descendant(todo, new_parent):
+            return jsonify({'error': 'Cannot make a todo a subtask of itself or its descendants'}), 400
+
+        new_depth = new_parent.depth + 1
+
+        # Check max depth
+        if new_depth > 2:
+            return jsonify({'error': 'Maximum nesting depth reached (3 levels max)'}), 400
+    else:
+        new_depth = 0
+
+    # Validate new_project if provided
+    if new_project_id != todo.list_id:
+        new_project = TodoList.query.get(new_project_id)
+
+        if not new_project:
+            return jsonify({'error': 'New project not found'}), 404
+
+        if new_project.user_id != user_id:
+            return jsonify({'error': 'Not authorized to access new project'}), 403
+
+    try:
+        # Recursive function to update depth and list_id for todo and all children
+        def update_hierarchy(todo_item, depth_delta, new_list_id):
+            todo_item.depth += depth_delta
+            todo_item.list_id = new_list_id
+            for child in todo_item.children:
+                update_hierarchy(child, depth_delta, new_list_id)
+
+        # Calculate depth delta
+        depth_delta = new_depth - todo.depth
+
+        # Update the todo's hierarchy
+        todo.parent_id = new_parent_id
+        update_hierarchy(todo, depth_delta, new_project_id)
+
+        # Update order
+        todo.order_index = new_order
+
+        # Reorder siblings in the new location to make room
+        siblings = TodoItem.query.filter_by(
+            list_id=new_project_id,
+            parent_id=new_parent_id
+        ).filter(
+            TodoItem.id != todo_id
+        ).order_by(TodoItem.order_index).all()
+
+        for sibling in siblings:
+            if sibling.order_index >= new_order:
+                sibling.order_index += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Todo reparented successfully',
+            'todo': todo.to_dict(include_children=True)
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to reparent todo: {str(e)}'}), 500
