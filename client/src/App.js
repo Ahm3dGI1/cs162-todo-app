@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProjectPage from './pages/ProjectPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import { API_ENDPOINTS } from './config/api';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -23,13 +24,16 @@ function App() {
    */
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/current', {
+      const response = await fetch(API_ENDPOINTS.CHECK_AUTH, {
         credentials: 'include'  // Important: send cookies with request
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+      } else {
+        // Log the response status for debugging
+        console.log('Auth check returned status:', response.status);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -50,7 +54,7 @@ function App() {
    */
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(API_ENDPOINTS.LOGOUT, {
         method: 'POST',
         credentials: 'include'
       });

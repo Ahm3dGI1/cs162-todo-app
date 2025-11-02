@@ -69,11 +69,12 @@ def register():
     try:
         user = User(username=username, email=email)
         user.set_password(password)
-        
+
         db.session.add(user)
         db.session.commit()
-        
+
         # Log the user in immediately after registration
+        session.permanent = True  # Make session persist across browser restarts
         session['user_id'] = user.id
         session['username'] = user.username
         
@@ -115,11 +116,16 @@ def login():
     
     if not user or not user.check_password(password):
         return jsonify({'error': 'Invalid username or password'}), 401
-    
+
     # Create session
+    session.permanent = True  # Make session persist across browser restarts
     session['user_id'] = user.id
     session['username'] = user.username
-    
+
+    print(f"[LOGIN] Session created for user {user.username}")
+    print(f"[LOGIN] Session data: {dict(session)}")
+    print(f"[LOGIN] Session permanent: {session.permanent}")
+
     return jsonify({
         'message': 'Login successful',
         'user': user.to_dict()
@@ -148,16 +154,23 @@ def get_current_user():
         200: User data if logged in
         401: Not authenticated
     """
+    # Debug: Print session data
+    print(f"[AUTH CHECK] Session data: {dict(session)}")
+    print(f"[AUTH CHECK] Session permanent: {session.permanent}")
+
     if 'user_id' not in session:
+        print("[AUTH CHECK] No user_id in session - not authenticated")
         return jsonify({'error': 'Not authenticated'}), 401
 
     user = User.query.get(session['user_id'])
 
     if not user:
         # User was deleted but session still exists
+        print(f"[AUTH CHECK] User {session['user_id']} not found in database")
         session.clear()
         return jsonify({'error': 'User not found'}), 401
 
+    print(f"[AUTH CHECK] User {user.username} authenticated successfully")
     return jsonify({'user': user.to_dict()}), 200
 
 

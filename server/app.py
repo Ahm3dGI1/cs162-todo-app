@@ -4,6 +4,7 @@ from models import db
 from auth import auth_bp
 from routes import api_bp
 import os
+from datetime import timedelta
 
 
 def create_app():
@@ -19,11 +20,17 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # Session configuration
+
+    # Session configuration - Make sessions persistent across browser refreshes
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_PERMANENT'] = True  # Make sessions permanent (survive browser refresh)
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Sessions last 7 days
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_NAME'] = 'todo_session'
+    app.config['SESSION_COOKIE_DOMAIN'] = None  # Allow cookies from localhost:5000 to work with localhost:3000
+    app.config['SESSION_COOKIE_PATH'] = '/'
     
     # Initialize extensions
     db.init_app(app)
