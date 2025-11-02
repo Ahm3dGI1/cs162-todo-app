@@ -8,6 +8,7 @@ import {
   faLock,
   faTrash
 } from '@fortawesome/free-solid-svg-icons';
+import { API_ENDPOINTS } from '../config/api';
 
 function Dashboard({
   projects,
@@ -102,7 +103,7 @@ function Dashboard({
     setPasswordLoading(true);
 
     try {
-      const response = await fetch('/api/auth/change-password', {
+      const response = await fetch(API_ENDPOINTS.CHANGE_PASSWORD, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -590,9 +590,18 @@ def reparent_todo(todo_id):
 
         new_depth = new_parent.depth + 1
 
-        # Check max depth
         if new_depth > 2:
             return jsonify({'error': 'Maximum nesting depth reached (3 levels max)'}), 400
+
+        def get_max_child_depth(task, current_depth=0):
+            if not task.children:
+                return current_depth
+            return max(get_max_child_depth(child, current_depth + 1) for child in task.children)
+
+        max_child_depth = get_max_child_depth(todo)
+
+        if new_depth + max_child_depth > 2:
+            return jsonify({'error': f'Cannot move: task has {max_child_depth} level(s) of subtasks. Moving it here would exceed maximum depth of 3 levels'}), 400
     else:
         new_depth = 0
 
