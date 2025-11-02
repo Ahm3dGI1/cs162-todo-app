@@ -3,7 +3,8 @@
     "allow": [
       "Bash(tree:*)",
       "Bash(rmdir:*)",
-      "Bash(if exist \"client\\src\\pages\" rmdir \"client\\src\\pages\")"
+      "Bash(if exist \"client\\src\\pages\" rmdir \"client\\src\\pages\")",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

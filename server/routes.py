@@ -30,6 +30,38 @@ def get_projects():
     }), 200
 
 
+@api_bp.route('/projects/<int:project_id>', methods=['GET'])
+@login_required
+def get_project(project_id):
+    """
+    Get a specific project by ID.
+
+    Args:
+        project_id: ID of the project to retrieve
+
+    Returns:
+        200: Project details
+        401: Not authenticated
+        403: User doesn't own this project
+        404: Project not found
+    """
+    user_id = session.get('user_id')
+
+    # Get the project
+    project = TodoList.query.get(project_id)
+
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+
+    # Check if the user owns this project
+    if project.user_id != user_id:
+        return jsonify({'error': 'Access denied'}), 403
+
+    return jsonify({
+        'project': project.to_dict()
+    }), 200
+
+
 @api_bp.route('/projects', methods=['POST'])
 @login_required
 def create_project():
@@ -186,7 +218,7 @@ def delete_project(project_id):
 
 
 # ============================================================================
-# TODO ROUTES (PR-6 - Top-Level Only)
+# TODO ROUTES
 # ============================================================================
 
 @api_bp.route('/todos/<int:project_id>', methods=['GET'])
