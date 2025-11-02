@@ -236,15 +236,6 @@ function ProjectPage({ user, onLogout }) {
 
   return (
     <div className="project-view">
-      {/* Hamburger Menu Button */}
-      <button
-        className="hamburger-btn"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Open menu"
-      >
-        ☰
-      </button>
-
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -267,6 +258,7 @@ function ProjectPage({ user, onLogout }) {
           onDeleteTodo={handleDeleteTodo}
           onMoveTodo={handleMoveTodo}
           availableProjects={projects}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
       )}
     </div>

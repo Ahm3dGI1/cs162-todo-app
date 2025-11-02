@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import TodoItem from './TodoItem';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faArrowLeft, faBars } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faBars } from '@fortawesome/free-solid-svg-icons';
 
-function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMoveTodo, availableProjects, onBack }) {
+function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMoveTodo, availableProjects, onOpenSidebar }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [newTodoDescription, setNewTodoDescription] = useState('');
@@ -63,7 +63,11 @@ function TodoList({ list, todos, onCreateTodo, onUpdateTodo, onDeleteTodo, onMov
       {/* Page Header */}
       <div className="project-page-header">
         <div className="project-header-left">
-          <button className="hamburger-btn" onClick={onBack} title="Back to Dashboard">
+          <button
+            className="hamburger-btn"
+            onClick={onOpenSidebar}
+            aria-label="Open menu"
+          >
             <FontAwesomeIcon icon={faBars} />
           </button>
           <h1 className="project-title">{list.name}</h1>
