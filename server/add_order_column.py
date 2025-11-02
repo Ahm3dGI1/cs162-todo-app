@@ -6,7 +6,6 @@ Run this script to update the database schema.
 import sqlite3
 import os
 
-# Get the database path
 db_path = os.path.join(os.path.dirname(__file__), 'instance', 'todos.db')
 
 def add_order_column():
@@ -15,7 +14,6 @@ def add_order_column():
     cursor = conn.cursor()
 
     try:
-        # Check if column exists
         cursor.execute("PRAGMA table_info(todo_items)")
         columns = [column[1] for column in cursor.fetchall()]
 
@@ -27,7 +25,6 @@ def add_order_column():
             """)
             conn.commit()
 
-            # Set initial order based on created_at
             print("Setting initial order values...")
             cursor.execute("""
                 UPDATE todo_items

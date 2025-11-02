@@ -2,13 +2,7 @@ from flask import Blueprint, request, jsonify, session
 from models import db, TodoList, TodoItem, User
 from auth import login_required
 
-# Create API blueprint for list and todo routes
 api_bp = Blueprint('api', __name__, url_prefix='/api')
-
-
-# ============================================================================
-# PROJECT ROUTES
-# ============================================================================
 
 @api_bp.route('/projects', methods=['GET'])
 @login_required
@@ -21,8 +15,6 @@ def get_projects():
         401: Not authenticated
     """
     user_id = session.get('user_id')
-
-    # Get all projects owned by this user
     projects = TodoList.query.filter_by(user_id=user_id).order_by(TodoList.created_at).all()
 
     return jsonify({
@@ -46,14 +38,11 @@ def get_project(project_id):
         404: Project not found
     """
     user_id = session.get('user_id')
-
-    # Get the project
     project = TodoList.query.get(project_id)
 
     if not project:
         return jsonify({'error': 'Project not found'}), 404
 
-    # Check if the user owns this project
     if project.user_id != user_id:
         return jsonify({'error': 'Access denied'}), 403
 
@@ -81,20 +70,17 @@ def create_project():
     user_id = session.get('user_id')
     data = request.get_json()
 
-    # Validate required fields
     if not data or not data.get('name'):
         return jsonify({'error': 'Project name is required'}), 400
 
     name = data['name'].strip()
 
-    # Validate name length
     if len(name) < 1:
         return jsonify({'error': 'Project name cannot be empty'}), 400
 
     if len(name) > 200:
         return jsonify({'error': 'Project name must be 200 characters or less'}), 400
 
-    # Create new project
     try:
         new_project = TodoList(
             name=name,
@@ -138,30 +124,25 @@ def update_project(project_id):
     user_id = session.get('user_id')
     data = request.get_json()
 
-    # Validate required fields
     if not data or not data.get('name'):
         return jsonify({'error': 'Project name is required'}), 400
 
     name = data['name'].strip()
 
-    # Validate name length
     if len(name) < 1:
         return jsonify({'error': 'Project name cannot be empty'}), 400
 
     if len(name) > 200:
         return jsonify({'error': 'Project name must be 200 characters or less'}), 400
 
-    # Find the project
     project = TodoList.query.get(project_id)
 
     if not project:
         return jsonify({'error': 'Project not found'}), 404
 
-    # Check ownership
     if project.user_id != user_id:
         return jsonify({'error': 'Not authorized to update this project'}), 403
 
-    # Update the project
     try:
         project.name = name
         db.session.commit()
@@ -192,18 +173,14 @@ def delete_project(project_id):
         404: Project not found
     """
     user_id = session.get('user_id')
-
-    # Find the project
     project = TodoList.query.get(project_id)
 
     if not project:
         return jsonify({'error': 'Project not found'}), 404
 
-    # Check ownership
     if project.user_id != user_id:
         return jsonify({'error': 'Not authorized to delete this project'}), 403
 
-    # Delete the project (cascade will delete all todos)
     try:
         db.session.delete(project)
         db.session.commit()
@@ -238,23 +215,19 @@ def get_todos(project_id):
     """
     user_id = session.get('user_id')
 
-    # Find the project
     project = TodoList.query.get(project_id)
 
     if not project:
         return jsonify({'error': 'Project not found'}), 404
 
-    # Check ownership
     if project.user_id != user_id:
         return jsonify({'error': 'Not authorized to access this project'}), 403
 
-    # Get all top-level todos (parent_id is null) with their children
     todos = TodoItem.query.filter_by(
         list_id=project_id,
         parent_id=None
     ).order_by(TodoItem.created_at).all()
 
-    # Return hierarchical structure with children
     return jsonify({
         'todos': [todo.to_dict(include_children=True) for todo in todos]
     }), 200
@@ -284,7 +257,6 @@ def create_todo():
     user_id = session.get('user_id')
     data = request.get_json()
 
-    # Validate required fields
     if not data or not data.get('project_id') or not data.get('title'):
         return jsonify({'error': 'project_id and title are required'}), 400
 
@@ -294,20 +266,17 @@ def create_todo():
     priority = data.get('priority', 'medium')  # New priority field
     parent_id = data.get('parent_id')  # Now accepting parent_id
 
-    # Validate title length
     if len(title) < 1:
         return jsonify({'error': 'Title cannot be empty'}), 400
 
     if len(title) > 500:
         return jsonify({'error': 'Title must be 500 characters or less'}), 400
 
-    # Find the project
     project = TodoList.query.get(project_id)
 
     if not project:
         return jsonify({'error': 'Project not found'}), 404
 
-    # Check ownership
     if project.user_id != user_id:
         return jsonify({'error': 'Not authorized to add to this project'}), 403
 
@@ -332,11 +301,9 @@ def create_todo():
         if depth > 2:
             return jsonify({'error': 'Maximum nesting depth reached (3 levels max)'}), 400
 
-    # Validate priority
     if priority not in ['low', 'medium', 'high']:
         priority = 'medium'
 
-    # Create new todo
     try:
         new_todo = TodoItem(
             title=title,
@@ -392,17 +359,14 @@ def update_todo(todo_id):
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    # Find the todo
     todo = TodoItem.query.get(todo_id)
 
     if not todo:
         return jsonify({'error': 'Todo not found'}), 404
 
-    # Check ownership
     if todo.user_id != user_id:
         return jsonify({'error': 'Not authorized to update this todo'}), 403
 
-    # Update fields if provided
     try:
         if 'title' in data:
             title = data['title'].strip()
@@ -465,17 +429,14 @@ def delete_todo(todo_id):
     """
     user_id = session.get('user_id')
 
-    # Find the todo
     todo = TodoItem.query.get(todo_id)
 
     if not todo:
         return jsonify({'error': 'Todo not found'}), 404
 
-    # Check ownership
     if todo.user_id != user_id:
         return jsonify({'error': 'Not authorized to delete this todo'}), 403
 
-    # Delete the todo
     try:
         db.session.delete(todo)
         db.session.commit()
@@ -513,13 +474,11 @@ def move_todo(todo_id):
     user_id = session.get('user_id')
     data = request.get_json()
 
-    # Validate required fields
     if not data or not data.get('target_project_id'):
         return jsonify({'error': 'target_project_id is required'}), 400
 
     target_project_id = data['target_project_id']
 
-    # Find the todo
     todo = TodoItem.query.get(todo_id)
 
     if not todo:
@@ -539,7 +498,6 @@ def move_todo(todo_id):
     if target_project.user_id != user_id:
         return jsonify({'error': 'Not authorized to move to this project'}), 403
 
-    # Cannot move if same project
     if todo.list_id == target_project_id:
         return jsonify({'error': 'Todo is already in this project'}), 400
 
@@ -596,13 +554,11 @@ def reparent_todo(todo_id):
     user_id = session.get('user_id')
     data = request.get_json()
 
-    # Find the todo
     todo = TodoItem.query.get(todo_id)
 
     if not todo:
         return jsonify({'error': 'Todo not found'}), 404
 
-    # Check ownership
     if todo.user_id != user_id:
         return jsonify({'error': 'Not authorized to modify this todo'}), 403
 

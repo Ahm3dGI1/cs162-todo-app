@@ -58,14 +58,12 @@ def register():
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters long'}), 400
     
-    # Check if user already exists
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already exists'}), 400
     
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 400
     
-    # Create new user
     try:
         user = User(username=username, email=email)
         user.set_password(password)
@@ -111,13 +109,11 @@ def login():
     username = data['username'].strip()
     password = data['password']
     
-    # Find user by username
     user = User.query.filter_by(username=username).first()
     
     if not user or not user.check_password(password):
         return jsonify({'error': 'Invalid username or password'}), 401
 
-    # Create session
     session.permanent = True  # Make session persist across browser restarts
     session['user_id'] = user.id
     session['username'] = user.username
